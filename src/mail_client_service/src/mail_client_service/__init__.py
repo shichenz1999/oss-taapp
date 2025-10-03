@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 
 import gmail_client_impl
 import mail_client_api
@@ -52,4 +52,7 @@ def delete_message(
     message_id: str,
     client: mail_client_api.Client = Depends(get_mail_client),
 ) -> dict[str, str]:
-    raise NotImplementedError("Implement DELETE /messages/{message_id}")
+    if not client.delete_message(message_id):
+        raise HTTPException(status_code=500, detail="Failed to delete message")
+
+    return {"status": "deleted"}

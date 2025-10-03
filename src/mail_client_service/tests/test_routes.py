@@ -39,5 +39,27 @@ def test_mark_as_read_skeleton(api_client: TestClient) -> None:
     pytest.skip("Implement POST /messages/{message_id}/mark-as-read test")
 
 
-def test_delete_message_skeleton(api_client: TestClient) -> None:
-    pytest.skip("Implement DELETE /messages/{message_id} test")
+def test_delete_message_success(
+    api_client: TestClient,
+    fake_mail_client: mail_client_api.Client,
+) -> None:
+    fake_mail_client.delete_message.return_value = True
+
+    response = api_client.delete("/messages/msg-123")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "deleted"}
+    fake_mail_client.delete_message.assert_called_once_with("msg-123")
+
+
+def test_delete_message_failure(
+    api_client: TestClient,
+    fake_mail_client: mail_client_api.Client,
+) -> None:
+    fake_mail_client.delete_message.return_value = False
+
+    response = api_client.delete("/messages/msg-123")
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Failed to delete message"}
+    fake_mail_client.delete_message.assert_called_once_with("msg-123")
