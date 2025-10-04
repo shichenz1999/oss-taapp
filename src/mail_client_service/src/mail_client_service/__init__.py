@@ -44,7 +44,10 @@ def mark_as_read(
     message_id: str,
     client: mail_client_api.Client = Depends(get_mail_client),
 ) -> dict[str, str]:
-    raise NotImplementedError("Implement POST /messages/{message_id}/mark-as-read")
+    if not client.mark_as_read(message_id):
+        raise HTTPException(status_code=500, detail="Failed to mark message as read")
+
+    return {"status": "read"}
 
 
 @app.delete("/messages/{message_id}")
