@@ -1,25 +1,90 @@
-# mail_client_service Skeleton
+# Mail Client Service
 
-This package hosts the FastAPI wrapper around the shared `mail_client_api` and Gmail implementation packages. The current branch only ships the service skeleton so teammates can implement each endpoint independently.
+## Overview
+`mail_client_service` wraps a FastAPI application around the `mail_client_api.Client` contract so mailbox capabilities are reachable over HTTP. The package binds whichever concrete client is registered (for example `gmail_client_impl`) and translates requests into method calls on that client.
 
-## Structure
-- `src/mail_client_service/src/mail_client_service/__init__.py`: FastAPI application plus shared helpers (`get_mail_client`, `_serialize_message`) with `NotImplementedError` placeholders for each route.
-- `src/mail_client_service/tests/test_routes.py`: Pytest skeleton that overrides the mail client dependency and skips each endpoint test until it is implemented.
+## Responsibilities
+- Serve HTTP routes for core mailbox actions (list, fetch, mark-as-read, delete).
+- Serialise `mail_client_api.Message` instances into consistent JSON payloads.
+- Provide a dependency hook (`get_mail_client`) so tests or alternative adapters can swap the client implementation.
 
-## Expected Endpoints
-Implementations must provide thin wrappers over `mail_client_api.Client`:
-- `GET /messages` → list message summaries (id, from, to, date, subject).
-- `GET /messages/{message_id}` → return the full message (`_serialize_message`).
-- `POST /messages/{message_id}/mark-as-read` → call `mark_as_read` and return `{"status": "read"}` or an error.
-- `DELETE /messages/{message_id}` → call `delete_message` and return `{"status": "deleted"}` or an error.
+## Key Modules
+- `src/mail_client_service/src/mail_client_service/__init__.py`: exports the FastAPI `app`, dependency factory, and route handlers.
+- `src/mail_client_service/tests/test_routes.py`: validates success and error paths by overriding `get_mail_client` with mocks.
 
-## Development Workflow
-1. Create a feature branch per endpoint (e.g. `feature/messages-list`).
-2. Replace the relevant `NotImplementedError` with real logic, reusing `mail_client_api.get_client()` exclusively.
-3. Update the matching test in `tests/test_routes.py` and remove the `pytest.skip`.
-4. Run `uv run pytest src/mail_client_service/tests/test_routes.py` before opening a PR.
-5. Submit a pull request referencing the endpoint issue and request peer review.
+## API Reference
 
-## Notes
-- Keep the service a thin adapter: do not duplicate message parsing or Gmail-specific logic—delegate to `mail_client_api`/`gmail_client_impl`.
-- When adding shared utilities, coordinate with the team so everyone reuses the same helpers.
+### `GET /messages`
+Returns message summaries.
+- **Query parameters**: `max_results` (int, default `10`).
+- **200 response**:
+  ```json
+  [
+    {
+      "id": "msg-1",
+      "from_": "sender@example.com",
+      "to": "recipient@example.com",
+      "date": "2025-10-03",
+      "subject": "Subject line"
+    }
+  ]
+  ```
+- **500 response**: `{"detail": "<client error message>"}` if the underlying client raises.
+
+### `GET /messages/{message_id}`
+Returns a full message (summary fields plus `body`).
+- **200 response**:
+  ```json
+  {
+    "id": "msg-1",
+    "from_": "sender@example.com",
+    "to": "recipient@example.com",
+    "date": "2025-10-03",
+    "subject": "Subject line",
+    "body": "Full message contents"
+  }
+  ```
+- **500 response**: `{"detail": "<client error message>"}` when the client fails to fetch.
+
+### `POST /messages/{message_id}/mark-as-read`
+Toggles the unread flag.
+- **200 response**:
+  ```json
+  {
+    "status": "read"
+  }
+  ```
+- **500 response**:
+  ```json
+  {
+    "detail": "Failed to mark message as read"
+  }
+  ```
+
+### `DELETE /messages/{message_id}`
+Deletes a message.
+- **200 response**:
+  ```json
+  {
+    "status": "deleted"
+  }
+  ```
+- **500 response**:
+  ```json
+  {
+    "detail": "Failed to delete message"
+  }
+  ```
+
+## Running the Service
+```bash
+uv run uvicorn mail_client_service:app --reload
+curl "http://127.0.0.1:8000/messages?max_results=5"
+```
+
+## Testing
+```bash
+uv run pytest --no-cov src/mail_client_service/tests/test_routes.py
+```
+
+Tests override `get_mail_client` to exercise the routes without hitting external providers.

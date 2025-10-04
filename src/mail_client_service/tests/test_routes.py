@@ -5,8 +5,10 @@ from unittest.mock import Mock
 import pytest
 from fastapi.testclient import TestClient
 
-from mail_client_api import Client, get_mail_client
-from mail_client_service import app
+from mail_client_api import Client
+from mail_client_service import app, get_mail_client
+
+from types import SimpleNamespace
 
 client = TestClient(app)
 
@@ -16,22 +18,64 @@ def mock_client():
     mock_client = Mock(spec=Client)
     app.dependency_overrides[get_mail_client] = lambda: mock_client
     yield mock_client
-    app.dependency_overrides = {}
+    app.dependency_overrides.pop(get_mail_client, None)
 
-def test_list_messages_skeleton(mock_client) -> None:
-    pytest.skip("Implement GET /messages test")
+def test_list_messages_success(mock_client) -> None:
+    #ARRANGE
+    messages = [
+        SimpleNamespace(
+            id="msg-1",
+            from_="sender1@example.com",
+            to="recipient@example.com",
+            date="2025-10-03",
+            subject="msg-1 subject",
+            body="msg-1 body",
+        ),
+        SimpleNamespace(
+            id="msg-2",
+            from_="sender2@example.com",
+            to="recipient@example.com",
+            date="2025-10-04",
+            subject="msg-2 subject",
+            body="msg-2 body",
+        ),
+    ]
+    mock_client.get_messages.return_value = messages
+
+    # ACT
+    response = client.get("/messages", params={"max_results": 2})
+
+    # ASSERT
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": "msg-1",
+            "from_": "sender1@example.com",
+            "to": "recipient@example.com",
+            "date": "2025-10-03",
+            "subject": "msg-1 subject",
+        },
+        {
+            "id": "msg-2",
+            "from_": "sender2@example.com",
+            "to": "recipient@example.com",
+            "date": "2025-10-04",
+            "subject": "msg-2 subject",
+        },
+    ]
+    mock_client.get_messages.assert_called_once_with(max_results=2)
 
 
 def test_get_message_success(mock_client) -> None:
     # Message Object
-    msg = {
-        "id":"msg-1",
-        "from_":"msg-1@from.com",
-        "to":"msg-1@to.com",
-        "date":"10/03/2025",
-        "subject":"msg-1 subject",
-        "body":"msg-1 body",
-    }
+    msg = SimpleNamespace(
+        id="msg-1",
+        from_="msg-1@from.com",
+        to="msg-1@to.com",
+        date="10/03/2025",
+        subject="msg-1 subject",
+        body="msg-1 body",
+    )
 
     # mock return value
     mock_client.get_message.return_value = msg
@@ -49,22 +93,21 @@ def test_get_message_success(mock_client) -> None:
         "subject":"msg-1 subject",
         "body":"msg-1 body",
     }
-
-
+    mock_client.get_message.assert_called_once_with("msg-1")
 
 def test_get_message_not_found(mock_client) -> None:
     
     # arrange
     mock_client.get_message.side_effect = ValueError("not found")
 
+    #act
     response = client.get("/messages/nonexistent")
 
     # assert
     assert response.status_code == 500
-    print(response.json())
-    assert response.json() == {'message': 'Requested entity was not found.', 'domain': 'global', 'reason': 'notFound'}
+    assert response.json() == {"detail": "not found"}
+    mock_client.get_message.assert_called_once_with("nonexistent")
     
-
 def test_mark_as_read_success(mock_client) -> None:
     # ARRANGE
     mock_client.mark_as_read.return_value = True
