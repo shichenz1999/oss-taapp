@@ -1,0 +1,23 @@
+[project]
+name = "mail-client-service"
+version = "0.1.0"
+description = "FastAPI service exposing mail client routes"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "mail-client-api",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "httpx",
+]
+
+[tool.uv.sources]
+mail-client-api = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
