@@ -22,9 +22,48 @@ def test_list_messages_skeleton(mock_client) -> None:
     pytest.skip("Implement GET /messages test")
 
 
-def test_get_message_skeleton(mock_client) -> None:
-    pytest.skip("Implement GET /messages/{message_id} test")
+def test_get_message_success(mock_client) -> None:
+    # Message Object
+    msg = {
+        "id":"msg-1",
+        "from_":"msg-1@from.com",
+        "to":"msg-1@to.com",
+        "date":"10/03/2025",
+        "subject":"msg-1 subject",
+        "body":"msg-1 body",
+    }
 
+    # mock return value
+    mock_client.get_message.return_value = msg
+
+    # send request
+    response = client.get("/messages/msg-1")
+
+    # assert
+    assert response.status_code == 200
+    assert response.json() == {
+        "id":"msg-1",
+        "from_":"msg-1@from.com",
+        "to":"msg-1@to.com",
+        "date":"10/03/2025",
+        "subject":"msg-1 subject",
+        "body":"msg-1 body",
+    }
+
+
+
+def test_get_message_not_found(mock_client) -> None:
+    
+    # arrange
+    mock_client.get_message.side_effect = ValueError("not found")
+
+    response = client.get("/messages/nonexistent")
+
+    # assert
+    assert response.status_code == 500
+    print(response.json())
+    assert response.json() == {'message': 'Requested entity was not found.', 'domain': 'global', 'reason': 'notFound'}
+    
 
 def test_mark_as_read_success(mock_client) -> None:
     # ARRANGE
