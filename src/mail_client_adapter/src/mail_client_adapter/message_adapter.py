@@ -1,13 +1,13 @@
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 from mail_client_api import Message
 
 def _to_mapping(payload: Any) -> Mapping[str, Any]:
     if isinstance(payload, Mapping):
         return payload
     if hasattr(payload, "additional_properties"):
-        return payload.additional_properties
+        return cast(Mapping[str, Any], payload.additional_properties)
     if hasattr(payload, "to_dict"):
-        return payload.to_dict()
+        return cast(Mapping[str, Any], payload.to_dict())
     raise TypeError(f"Unsupported payload type: {type(payload)!r}")
 
 def _to_str(value: Any) -> str:

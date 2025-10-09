@@ -46,7 +46,12 @@ per-file-ignores = { "**/test_*.py" = ["TRY300", "BLE001", "ANN401", "SLF001", "
 [tool.mypy]
 strict = true
 explicit_package_bases = true # Required for src layout
-mypy_path = ["src/mail_client_api/src", "src/mail_client_gmail_impl/src"]
+mypy_path = [
+    "src/mail_client_api/src",
+    "src/gmail_client_impl/src",
+    "src/mail_client_service/src",
+    "src/mail_client_adapter/src",
+]
 ignore_missing_imports = false
 warn_unused_ignores = false
 
@@ -57,13 +62,29 @@ module = [
     "googleapiclient.*",
     "gmail_client_impl.*",
     "mail_client_api.*",
+    "mail_client_service.*",
+    "mail_client_service_client.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "src.mail_client_adapter.tests.*",
+    "src.mail_client_service.tests.*",
+    "tests.*",
+]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
 
 [tool.pytest.ini_options]
 pythonpath = [
     ".", 
-    "src"
+    "src",
+    "src/mail_client_adapter/src",
+    "src/mail_client_service/src",
+    "src/gmail_client_impl/src",
+    "src/mail_client_api/src",
 ]
 testpaths = ["tests", "src/*/tests"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
