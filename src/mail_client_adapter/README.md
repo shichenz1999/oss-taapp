@@ -11,15 +11,15 @@ logic.
 ```
 mail_client_adapter/
 ├── README.md                      # Project guide (this file)
-├── pyproject.toml                 # Minimal metadata for editable installs
+├── pyproject.toml                 # Metadata
 ├── src/mail_client_adapter/
 │   ├── __init__.py                # Exposes register() and adapter classes
 │   ├── client_adapter.py          # ServiceMailClient: wraps the generated SDK and fulfils Client
 │   └── message_adapter.py         # ServiceMessage: adapts SDK/dict payloads to Message
-└── tests/                         # Adapter-focused tests (mock the SDK)
-   ├── test_client_adapter.py     # Verifies ServiceMailClient uses generated SDK correctly
-   ├── test_message_adapter_internals.py  # Validates payload adaptation & stringification
-   └── test_register_helper.py    # Ensures register() overrides mail_client_api.get_client
+└── tests/                         
+    ├── test_client_adapter.py     # Verifies ServiceMailClient uses generated SDK correctly
+    ├── test_message_adapter_internals.py  # Validates payload adaptation & stringification
+    └── test_register_helper.py    # Ensures register() overrides mail_client_api.get_client
 ```
 
 - `README.md` – Overview and usage notes for the adapter package.
@@ -27,7 +27,10 @@ mail_client_adapter/
 - `src/mail_client_adapter/__init__.py` – Makes the adapter easy to import and adds a `register(base_url=...)` helper that points `mail_client_api.get_client` to this version.
 - `src/mail_client_adapter/client_adapter.py` – Defines `ServiceMailClient`, calling the generated HTTP client under the hood but keeping the familiar `mail_client_api.Client` methods.
 - `src/mail_client_adapter/message_adapter.py` – Defines `ServiceMessage`, turning service responses into objects with the expected `id/from_/to/date/subject/body` properties.
-- `tests/` – WIP
+- `tests/` – Focused pytest suite that exercises the adapter in isolation:
+   - `test_client_adapter.py` – Patches the generated SDK to verify each client method.
+   - `test_message_adapter_internals.py` – Checks payload coercion edge cases.
+   - `test_register_helper.py` – Confirms `register()` rebinds `mail_client_api.get_client`.
 
 ## Usage
 1. Start the service in a separate terminal:
