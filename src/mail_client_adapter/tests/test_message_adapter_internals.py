@@ -1,6 +1,6 @@
 import pytest
 
-from mail_client_adapter import ServiceMessage
+from mail_client_adapter.src.mail_client_adapter import ServiceMessage
 
 
 class DummyWithAdditional:

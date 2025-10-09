@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import mail_client_api
 import pytest
 
-from mail_client_adapter import ServiceMailClient, ServiceMessage
+from mail_client_adapter.src.mail_client_adapter import ServiceMailClient, ServiceMessage
 
 
 class _DummyModel:

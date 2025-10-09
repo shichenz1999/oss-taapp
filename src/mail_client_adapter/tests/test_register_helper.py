@@ -1,7 +1,7 @@
 import mail_client_api
 import pytest
 
-from mail_client_adapter import register, ServiceMailClient
+from mail_client_adapter.src.mail_client_adapter import register, ServiceMailClient
 
 
 def test_register_overrides_get_client(monkeypatch):
