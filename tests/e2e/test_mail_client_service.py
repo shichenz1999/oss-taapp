@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from starlette.types import ASGIApp
+
 import os
-from collections.abc import Iterator
 from pathlib import Path
 
 import anyio
 import httpx
 import pytest
-from starlette.types import ASGIApp
 
 import gmail_client_impl
 import mail_client_adapter
