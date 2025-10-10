@@ -13,14 +13,13 @@ from starlette.types import ASGIApp
 import gmail_client_impl
 import mail_client_api
 import mail_client_service
+import mail_client_adapter
+from mail_client_adapter import ServiceMailClient
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_SRC = REPO_ROOT / "src" / "mail_client_adapter" / "src"
 if str(ADAPTER_SRC) not in sys.path:
     sys.path.insert(0, str(ADAPTER_SRC))
-
-import src.mail_client_adapter.src.mail_client_adapter as mail_client_adapter 
-from src.mail_client_adapter.src.mail_client_adapter import ServiceMailClient 
 
 pytestmark = pytest.mark.integration
 
@@ -48,7 +47,6 @@ def _build_sync_transport(app: ASGIApp) -> httpx.MockTransport:
 @pytest.mark.circleci
 def test_mail_client_adapter_round_trip_through_service() -> None:
     """Service adapter should reach the FastAPI service and delegate to the Gmail client implementation."""
-
     sample_message = SimpleNamespace(
         id="msg-123",
         from_="from@example.com",
