@@ -1,85 +1,100 @@
-# tests/e2e/test_mail_client_service.py
+"""E2E tests that exercise the FastAPI service against the real Gmail backend."""
+
+from __future__ import annotations
+
 import os
-import signal
-import socket
-import subprocess
-import sys
-import time
 from collections.abc import Iterator
-from contextlib import contextmanager
 from pathlib import Path
 
+import anyio
+import httpx
 import pytest
+from starlette.types import ASGIApp
 
+import gmail_client_impl
 import mail_client_adapter
 import mail_client_api
+import mail_client_service
+from mail_client_adapter import ServiceMailClient
 
 pytestmark = pytest.mark.e2e
 
-SERVICE_HOST = "127.0.0.1"
-SERVICE_PORT = 8765
-BASE_URL = f"http://{SERVICE_HOST}:{SERVICE_PORT}"
+BASE_URL = "http://testserver"
 
 
-@contextmanager
-def run_service() -> Iterator[str]:
-    app_dir = Path(__file__).resolve().parents[2] / "src" / "mail_client_service"
-    env = os.environ.copy()
-    process = subprocess.Popen(  # noqa: S603
-        [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "mail_client_service:app",
-            "--host",
-            SERVICE_HOST,
-            "--port",
-            str(SERVICE_PORT),
-        ],
-        cwd=str(app_dir),
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+def _build_sync_transport(app: ASGIApp) -> httpx.MockTransport:
+    """Return a synchronous transport that drives the ASGI app in-process."""
+    asgi_transport = httpx.ASGITransport(app=app)
 
-    try:
-        _wait_for_port(SERVICE_HOST, SERVICE_PORT)
-        yield BASE_URL
-    finally:
-        process.send_signal(signal.SIGINT)
-        try:
-            process.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            process.kill()
+    def _handler(request: httpx.Request) -> httpx.Response:
+        async def _invoke() -> httpx.Response:
+            response = await asgi_transport.handle_async_request(request)
+            content = await response.aread()
+            return httpx.Response(
+                status_code=response.status_code,
+                headers=response.headers,
+                content=content,
+                request=request,
+                extensions=response.extensions,
+            )
+
+        return anyio.run(_invoke)
+
+    return httpx.MockTransport(_handler)
 
 
-def _wait_for_port(host: str, port: int, timeout: float = 30.0) -> None:
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        with socket.socket() as sock:
-            sock.settimeout(1.0)
-            if sock.connect_ex((host, port)) == 0:
-                return
-        time.sleep(0.2)
-    raise RuntimeError(f"Service on {host}:{port} did not start within {timeout}s")
-
-
-@pytest.mark.local_credentials
-def test_service_roundtrip() -> None:
+@pytest.fixture(scope="session")
+def _gmail_credentials_ready() -> None:
+    """Ensure we have either local credential files or Gmail env vars available."""
     workspace = Path(__file__).resolve().parents[2]
     credentials = workspace / "credentials.json"
     token = workspace / "token.json"
-    if not credentials.exists() and not token.exists():
-        pytest.skip("No credentials/token found for live Gmail E2E")
 
-    with run_service() as base_url:
-        mail_client_adapter.register(base_url=base_url)
-        client = mail_client_api.get_client(interactive=False)
+    have_files = credentials.exists() or token.exists()
+    have_env = all(
+        os.environ.get(var)
+        for var in ("GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN")
+    )
 
-        messages = list(client.get_messages(max_results=1))
-        assert messages, "Expected at least one message from live Gmail API"
+    if not (have_files or have_env):
+        pytest.skip(
+            "Need Gmail credentials via token.json/credentials.json or environment variables for live Gmail E2E",
+        )
 
-        first_id = messages[0].id
-        detailed = client.get_message(first_id)
-        assert detailed.id == first_id
-        assert detailed.subject is not None
+
+@pytest.fixture
+def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailClient]:
+    """Create a service-backed client that talks to the FastAPI app in-process."""
+    app = mail_client_service.app
+    mail_client_service._client_factory.cache_clear()
+
+    real_client = mail_client_api.get_client(interactive=False)
+    app.dependency_overrides[mail_client_service.get_mail_client] = lambda: real_client
+
+    transport = _build_sync_transport(app)
+    http_client = httpx.Client(transport=transport, base_url=BASE_URL)
+
+    mail_client_adapter.register(base_url=BASE_URL)
+    client = mail_client_api.get_client(interactive=False)
+    assert isinstance(client, ServiceMailClient)
+    client._client.set_httpx_client(http_client)
+
+    try:
+        yield client
+    finally:
+        http_client.close()
+        app.dependency_overrides.pop(mail_client_service.get_mail_client, None)
+        mail_client_service._client_factory.cache_clear()
+        gmail_client_impl.register()
+
+
+@pytest.mark.circleci
+def test_service_roundtrip(service_mail_client: ServiceMailClient) -> None:
+    messages = list(service_mail_client.get_messages(max_results=1))
+    assert messages, "Expected at least one message from live Gmail API"
+
+    first = messages[0]
+    detailed = service_mail_client.get_message(first.id)
+
+    assert detailed.id == first.id
+    assert detailed.subject is not None

@@ -287,7 +287,10 @@ class TestGmailClientAuthentication:
         # ARRANGE
         mock_build.side_effect = Exception("Service build failed")
 
-        with patch.object(GmailClient, "_run_interactive_flow") as mock_interactive:
+        with (
+            patch.object(GmailClient, "_run_interactive_flow") as mock_interactive,
+            patch.object(GmailClient, "_save_token") as mock_save,
+        ):
             mock_creds = Mock(spec=Credentials)
             mock_creds.valid = True
             mock_creds.to_json.return_value = '{"fake": "token"}'  # Add this line
@@ -296,6 +299,7 @@ class TestGmailClientAuthentication:
             # ACT & ASSERT
             with pytest.raises(Exception, match="Service build failed"):
                 GmailClient(interactive=True)
+            mock_save.assert_called_once_with(mock_creds, "token.json")
 
 
 class TestGmailClientHelperMethods:
