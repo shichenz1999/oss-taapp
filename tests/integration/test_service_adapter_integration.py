@@ -1,7 +1,5 @@
 """Integration test covering adapter -> service -> Gmail client chain."""
 
-"""Integration test covering adapter -> service -> Gmail client chain."""
-
 from pathlib import Path
 import sys
 from types import SimpleNamespace
