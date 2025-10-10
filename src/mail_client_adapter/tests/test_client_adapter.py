@@ -1,4 +1,3 @@
-import builtins
 from unittest.mock import patch, MagicMock
 
 import mail_client_api
@@ -8,7 +7,7 @@ from mail_client_adapter import ServiceMailClient, ServiceMessage
 
 
 class _DummyModel:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: object) -> None:
         self.additional_properties = kwargs
 
 
@@ -17,7 +16,6 @@ def reset_mail_client_api(monkeypatch):
     # ensure get_client is not permanently modified by other tests
     if hasattr(mail_client_api, "get_client"):
         monkeypatch.setattr(mail_client_api, "get_client", mail_client_api.get_client, raising=False)
-    yield
 
 
 def test_service_message_adapts_generated_payload():
@@ -47,7 +45,7 @@ def test_service_mail_client_methods(mock_mark, mock_delete, mock_list, mock_get
     ]
     # get_message will be called 3 times total: once explicitly, twice during get_messages iteration
     mock_get.side_effect = [
-        _DummyModel(id="1", subject="s1"),       # explicit get_message("1")
+        _DummyModel(id="1", subject="s1"),  # explicit get_message("1")
         _DummyModel(id="1", subject="s1_full"),  # for iterator resolving id "1"
         _DummyModel(id="2", subject="s2_full"),  # for iterator resolving id "2"
     ]

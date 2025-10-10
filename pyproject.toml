@@ -37,11 +37,31 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-  "D203", # `incorrect-blank-line-before-class` (D203) and `no-blank-line-before-class` (D211) are incompatible. Ignoring `incorrect-blank-line-before-class`.
-  "D213", # `multi-line-summary-first-line` (D212) and `multi-line-summary-second-line` (D213) are incompatible. Ignoring `multi-line-summary-second-line`.
-  "S101", # Use of `assert` detected --> Asserts are good in our opinion. Tests use asserts profusely.
+    "D203", # `incorrect-blank-line-before-class` (D203) and `no-blank-line-before-class` (D211) are incompatible. Ignoring `incorrect-blank-line-before-class`.
+    "D213", # `multi-line-summary-first-line` (D212) and `multi-line-summary-second-line` (D213) are incompatible. Ignoring `multi-line-summary-second-line`.
+    "S101", # Use of `assert` detected --> Asserts are good in our opinion. Tests use asserts profusely.
+    "COM812", # Conflicts with the formatter; safe to ignore when using ruff format
 ]
-per-file-ignores = { "**/test_*.py" = ["TRY300", "BLE001", "ANN401", "SLF001", "E501", "S105", "ARG001", "ARG002", "S106", "INP001", "PLC0415"] }
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = [
+    "TRY300", "BLE001", "ANN401", "SLF001", "E501", "S105", "ARG001", "ARG002", "S106", "INP001", "PLC0415",
+    # Common test relaxations
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "I001",
+    "ANN001", "ANN201", "ANN202", "ANN204",
+    "PLR2004",
+    "PT022",
+    "RUF003",
+    "EM102", "TRY003",
+]
+"scripts/*.py" = [
+    "INP001",
+    "D100", "D103",
+    "I001",
+    "T201",
+    "TRY003", "EM101", "EM102",
+]
 
 [tool.mypy]
 strict = true

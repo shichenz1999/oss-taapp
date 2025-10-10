@@ -10,7 +10,8 @@ __all__ = ["ServiceMailClient", "ServiceMessage", "register"]
 
 def register(*, base_url: str) -> None:
     """Let mail_client_api.get_client return the service-backed implementation."""
-    def _factory(*, interactive: bool = False) -> mail_client_api.Client:
+
+    def _factory(*, _interactive: bool = False) -> mail_client_api.Client:
         return ServiceMailClient(base_url=base_url)
 
     mail_client_api.get_client = _factory

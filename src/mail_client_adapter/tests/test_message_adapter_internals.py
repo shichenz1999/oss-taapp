@@ -4,7 +4,7 @@ from mail_client_adapter import ServiceMessage
 
 
 class DummyWithAdditional:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: object) -> None:
         self.additional_properties = kwargs
 
 

@@ -1,9 +1,17 @@
-# get_gmail_refresh_token_simple.py
+"""Interactive helper to obtain a Gmail OAuth refresh token.
+
+Run from repository root after exporting GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET.
+"""
+
 import json
+import logging
 import os
 import urllib.parse
 import webbrowser
+
 import requests
+
+logger = logging.getLogger(__name__)
 
 CLIENT_ID = os.environ["GMAIL_CLIENT_ID"]
 CLIENT_SECRET = os.environ["GMAIL_CLIENT_SECRET"]
@@ -21,12 +29,13 @@ def main() -> None:
         "prompt": "consent",
     }
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
-    print("Open this URL in your browser and authorize:\n", auth_url)
+    logger.info("Open this URL in your browser and authorize: %s", auth_url)
     webbrowser.open(auth_url)
 
     code = input("\nPaste the `code` from the redirect URL here: ").strip()
     if not code:
-        raise SystemExit("No code provided.")
+        logger.error("No code provided.")
+        raise SystemExit(1)
 
     response = requests.post(
         "https://oauth2.googleapis.com/token",
@@ -40,9 +49,10 @@ def main() -> None:
         timeout=30,
     )
     response.raise_for_status()
-    print("\nToken response (save the refresh_token safely):")
+    logger.info("Token response (save the refresh_token safely):")
     print(json.dumps(response.json(), indent=2))
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()

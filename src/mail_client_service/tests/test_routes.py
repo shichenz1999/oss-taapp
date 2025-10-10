@@ -1,5 +1,6 @@
 """Skeleton tests for mail_client_service routes."""
 
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -8,9 +9,8 @@ from fastapi.testclient import TestClient
 from mail_client_api import Client
 from mail_client_service import app, get_mail_client
 
-from types import SimpleNamespace
-
 client = TestClient(app)
+
 
 @pytest.fixture
 def mock_client():
@@ -20,8 +20,9 @@ def mock_client():
     yield mock_client
     app.dependency_overrides.pop(get_mail_client, None)
 
+
 def test_list_messages_success(mock_client) -> None:
-    #ARRANGE
+    # ARRANGE
     messages = [
         SimpleNamespace(
             id="msg-1",
@@ -86,28 +87,29 @@ def test_get_message_success(mock_client) -> None:
     # assert
     assert response.status_code == 200
     assert response.json() == {
-        "id":"msg-1",
-        "from_":"msg-1@from.com",
-        "to":"msg-1@to.com",
-        "date":"10/03/2025",
-        "subject":"msg-1 subject",
-        "body":"msg-1 body",
+        "id": "msg-1",
+        "from_": "msg-1@from.com",
+        "to": "msg-1@to.com",
+        "date": "10/03/2025",
+        "subject": "msg-1 subject",
+        "body": "msg-1 body",
     }
     mock_client.get_message.assert_called_once_with("msg-1")
 
+
 def test_get_message_not_found(mock_client) -> None:
-    
     # arrange
     mock_client.get_message.side_effect = ValueError("not found")
 
-    #act
+    # act
     response = client.get("/messages/nonexistent")
 
     # assert
     assert response.status_code == 500
     assert response.json() == {"detail": "not found"}
     mock_client.get_message.assert_called_once_with("nonexistent")
-    
+
+
 def test_mark_as_read_success(mock_client) -> None:
     # ARRANGE
     mock_client.mark_as_read.return_value = True
@@ -120,6 +122,7 @@ def test_mark_as_read_success(mock_client) -> None:
     assert response.status_code == 200
     assert response.json() == {"status": "read"}
     mock_client.mark_as_read.assert_called_once_with(message_id)
+
 
 def test_mark_as_read_failure(mock_client) -> None:
     # ARRANGE
