@@ -1,6 +1,7 @@
 """Service-backed implementation of the mail client contract."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
+from typing import Any, cast
 
 import mail_client_api
 from mail_client_service_client.fast_api_client import client as generated_client
@@ -25,20 +26,25 @@ class ServiceMailClient(mail_client_api.Client):
         """Fetch a single message by ID from the service."""
         result = get_message_messages_message_id_get.sync(client=self._client, message_id=message_id)
         return ServiceMessage(result)
-    
+
     def get_messages(self, max_results: int = 10) -> Iterator[mail_client_api.Message]:
         """Yield messages from the service, resolving each to the full payload."""
         summaries = list_messages_messages_get.sync(client=self._client, max_results=max_results)
         for summary in summaries:
-            yield self.get_message(summary.additional_properties["id"])
+            props = cast("Mapping[str, Any]", summary.additional_properties)
+            message_id = props.get("id")
+            if message_id is None:
+                continue
+            yield self.get_message(str(message_id))
 
     def delete_message(self, message_id: str) -> bool:
         """Request message deletion; return True when the service reports success."""
         result = delete_message_messages_message_id_delete.sync(client=self._client, message_id=message_id)
-        return result.additional_properties["status"] == "deleted"
+        props = cast("Mapping[str, Any]", result.additional_properties)
+        return props.get("status") == "deleted"
 
     def mark_as_read(self, message_id: str) -> bool:
         """Mark a message as read; return True when the service reports success."""
         result = mark_as_read_messages_message_id_mark_as_read_post.sync(client=self._client, message_id=message_id)
-        return result.additional_properties["status"] == "read"
-
+        props = cast("Mapping[str, Any]", result.additional_properties)
+        return props.get("status") == "read"
