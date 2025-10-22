@@ -7,7 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from mail_client_api import Client
-from mail_client_service import app, get_mail_client
+from mail_client_service import app
+from mail_client_service.app import get_mail_client
 
 client = TestClient(app)
 

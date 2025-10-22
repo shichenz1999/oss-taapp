@@ -18,7 +18,7 @@ import pytest
 import gmail_client_impl
 import mail_client_adapter
 import mail_client_api
-import mail_client_service
+from mail_client_service.app import app, _client_factory, get_mail_client
 from mail_client_adapter import ServiceMailClient
 
 pytestmark = pytest.mark.e2e
@@ -69,11 +69,10 @@ def _gmail_credentials_ready() -> None:
 @pytest.fixture
 def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailClient]:
     """Create a service-backed client that talks to the FastAPI app in-process."""
-    app = mail_client_service.app
-    mail_client_service._client_factory.cache_clear()
+    _client_factory.cache_clear()
 
     real_client = mail_client_api.get_client(interactive=False)
-    app.dependency_overrides[mail_client_service.get_mail_client] = lambda: real_client
+    app.dependency_overrides[get_mail_client] = lambda: real_client
 
     transport = _build_sync_transport(app)
     http_client = httpx.Client(transport=transport, base_url=BASE_URL)
@@ -87,8 +86,8 @@ def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailC
         yield client
     finally:
         http_client.close()
-        app.dependency_overrides.pop(mail_client_service.get_mail_client, None)
-        mail_client_service._client_factory.cache_clear()
+        app.dependency_overrides.pop(get_mail_client, None)
+        _client_factory.cache_clear()
         gmail_client_impl.register()
 
 
