@@ -2,8 +2,8 @@
 
 import mail_client_api
 
-from .client_adapter import ServiceMailClient
-from .message_adapter import ServiceMessage
+from mail_client_adapter.client_adapter import ServiceMailClient
+from mail_client_adapter.message_adapter import ServiceMessage
 
 __all__ = ["ServiceMailClient", "ServiceMessage", "register"]
 
