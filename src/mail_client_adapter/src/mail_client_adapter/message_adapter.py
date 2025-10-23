@@ -1,71 +1,42 @@
-"""Adapters for message payloads returned by the service SDK."""
-
-from collections.abc import Mapping
-from typing import Any, cast
+"""Adapter that exposes generated message detail models via the API contract."""
 
 from mail_client_api import Message
-
-
-def _to_mapping(payload: object) -> Mapping[str, Any]:
-    """Normalize SDK payload-like objects into a Mapping[str, Any]."""
-    if isinstance(payload, Mapping):
-        return payload
-    if hasattr(payload, "additional_properties"):
-        return cast("Mapping[str, Any]", payload.additional_properties)
-    if hasattr(payload, "to_dict"):
-        return cast("Mapping[str, Any]", payload.to_dict())
-    # Keep the error simple to satisfy Ruff's exception message style rules.
-    typename = type(payload).__name__
-    msg = f"Unsupported payload type: {typename}"
-    raise TypeError(msg)
-
-
-def _to_str(value: object) -> str:
-    """Convert possibly non-string values into strings; None becomes empty string."""
-    if value is None:
-        return ""
-    return value if isinstance(value, str) else str(value)
+from mail_client_service_client.fast_api_client.models.message_detail import MessageDetail
 
 
 class ServiceMessage(Message):
-    """Concrete Message backed by a mapping-like payload from the service SDK."""
+    """Expose a generated `MessageDetail` instance through the `mail_client_api` contract."""
 
-    def __init__(self, payload: object) -> None:
-        """Create a message by adapting a raw SDK payload to our interface."""
-        data = _to_mapping(payload)
-        self._id = _to_str(data.get("id"))
-        self._from = _to_str(data.get("from_"))
-        self._to = _to_str(data.get("to"))
-        self._date = _to_str(data.get("date"))
-        self._subject = _to_str(data.get("subject"))
-        self._body = _to_str(data.get("body"))
+    def __init__(self, detail: MessageDetail) -> None:
+        """Store the detail payload returned by the service."""
+        self._detail = detail
 
     @property
     def id(self) -> str:
-        """Unique message identifier."""
-        return self._id
+        """Return the message identifier."""
+        return self._detail.id
 
     @property
     def from_(self) -> str:
-        """Sender email address."""
-        return self._from
+        """Return the sender address."""
+        return self._detail.from_
 
     @property
     def to(self) -> str:
-        """Recipient email address."""
-        return self._to
+        """Return the recipient list."""
+        return self._detail.to
 
     @property
     def date(self) -> str:
-        """Message date string."""
-        return self._date
+        """Return the message date."""
+        return self._detail.date
 
     @property
     def subject(self) -> str:
-        """Message subject."""
-        return self._subject
+        """Return the message subject."""
+        return self._detail.subject
 
     @property
     def body(self) -> str:
-        """Message body text."""
-        return self._body
+        """Return the message body."""
+        return self._detail.body

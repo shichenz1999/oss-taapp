@@ -15,6 +15,7 @@ import mail_client_api
 from mail_client_service.app import app, get_mail_client, _client_factory
 import mail_client_adapter
 from mail_client_adapter import ServiceMailClient
+from mail_client_service import reset_client_cache
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_SRC = REPO_ROOT / "src" / "mail_client_adapter" / "src"
@@ -61,9 +62,9 @@ def test_mail_client_adapter_round_trip_through_service() -> None:
     gmail_mock.mark_as_read.return_value = True
     gmail_mock.delete_message.return_value = True
 
-    # app = mail_client_service.app
-    app.dependency_overrides[get_mail_client] = lambda: gmail_mock
-    _client_factory.cache_clear()
+    app = mail_client_service.app
+    app.dependency_overrides[mail_client_service.get_mail_client] = lambda: gmail_mock
+    reset_client_cache()
 
     base_url = "http://testserver"
     transport = _build_sync_transport(app)
@@ -97,6 +98,6 @@ def test_mail_client_adapter_round_trip_through_service() -> None:
         gmail_mock.delete_message.assert_called_once_with(sample_message.id)
     finally:
         transport.close()
-        app.dependency_overrides.pop(get_mail_client, None)
-        _client_factory.cache_clear()
+        app.dependency_overrides.pop(mail_client_service.get_mail_client, None)
+        reset_client_cache()
         gmail_client_impl.register()

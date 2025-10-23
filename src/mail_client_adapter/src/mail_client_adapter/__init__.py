@@ -1,7 +1,6 @@
 """Public exports for the mail_client_adapter package."""
 
 import mail_client_api
-
 from mail_client_adapter.client_adapter import ServiceMailClient
 from mail_client_adapter.message_adapter import ServiceMessage
 

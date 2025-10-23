@@ -51,7 +51,8 @@ Toggles the unread flag.
 - **200 response**:
   ```json
   {
-    "status": "read"
+    "success": true,
+    "message": "marked as read"
   }
   ```
 - **500 response**:
@@ -66,7 +67,8 @@ Deletes a message.
 - **200 response**:
   ```json
   {
-    "status": "deleted"
+    "success": true,
+    "message": "deleted"
   }
   ```
 - **500 response**:

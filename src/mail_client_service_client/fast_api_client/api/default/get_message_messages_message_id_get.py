@@ -5,10 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_message_messages_message_id_get_response_get_message_messages_message_id_get import (
-    GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet,
-)
 from ...models.http_validation_error import HTTPValidationError
+from ...models.message_detail import MessageDetail
 from ...types import Response
 
 
@@ -25,9 +23,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]:
+) -> Optional[Union[HTTPValidationError, MessageDetail]]:
     if response.status_code == 200:
-        response_200 = GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet.from_dict(response.json())
+        response_200 = MessageDetail.from_dict(response.json())
 
         return response_200
 
@@ -44,7 +42,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]:
+) -> Response[Union[HTTPValidationError, MessageDetail]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -57,10 +55,8 @@ def sync_detailed(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Response[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]:
+) -> Response[Union[HTTPValidationError, MessageDetail]]:
     """Get Message
-
-     get a message by message id
 
     Args:
         message_id (str):
@@ -70,7 +66,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]
+        Response[Union[HTTPValidationError, MessageDetail]]
     """
 
     kwargs = _get_kwargs(
@@ -88,10 +84,8 @@ def sync(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]:
+) -> Optional[Union[HTTPValidationError, MessageDetail]]:
     """Get Message
-
-     get a message by message id
 
     Args:
         message_id (str):
@@ -101,7 +95,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]
+        Union[HTTPValidationError, MessageDetail]
     """
 
     return sync_detailed(
@@ -114,10 +108,8 @@ async def asyncio_detailed(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Response[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]:
+) -> Response[Union[HTTPValidationError, MessageDetail]]:
     """Get Message
-
-     get a message by message id
 
     Args:
         message_id (str):
@@ -127,7 +119,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]
+        Response[Union[HTTPValidationError, MessageDetail]]
     """
 
     kwargs = _get_kwargs(
@@ -143,10 +135,8 @@ async def asyncio(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]]:
+) -> Optional[Union[HTTPValidationError, MessageDetail]]:
     """Get Message
-
-     get a message by message id
 
     Args:
         message_id (str):
@@ -156,7 +146,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[GetMessageMessagesMessageIdGetResponseGetMessageMessagesMessageIdGet, HTTPValidationError]
+        Union[HTTPValidationError, MessageDetail]
     """
 
     return (

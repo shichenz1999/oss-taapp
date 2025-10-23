@@ -4,37 +4,60 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-T = TypeVar("T", bound="DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete")
+T = TypeVar("T", bound="OperationResponse")
 
 
 @_attrs_define
-class DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete:
-    """ """
+class OperationResponse:
+    """
+    Attributes:
+        success (bool):
+        message (str):
+    """
 
-    additional_properties: dict[str, str] = _attrs_field(init=False, factory=dict)
+    success: bool
+    message: str
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        success = self.success
+
+        message = self.message
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "success": success,
+                "message": message,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        delete_message_messages_message_id_delete_response_delete_message_messages_message_id_delete = cls()
+        success = d.pop("success")
 
-        delete_message_messages_message_id_delete_response_delete_message_messages_message_id_delete.additional_properties = d
-        return delete_message_messages_message_id_delete_response_delete_message_messages_message_id_delete
+        message = d.pop("message")
+
+        operation_response = cls(
+            success=success,
+            message=message,
+        )
+
+        operation_response.additional_properties = d
+        return operation_response
 
     @property
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> str:
+    def __getitem__(self, key: str) -> Any:
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: str) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

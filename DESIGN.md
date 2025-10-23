@@ -41,8 +41,8 @@ The following JSON was captured from `GET /messages/{message_id}` while the serv
 |--------|------|--------------------|---------------------|-------|
 | `GET` | `/messages` | Query: `max_results` (int, optional, default 10) | `200 OK` with `[{id, from_, to, date, subject}]` | Streams inbox summaries. |
 | `GET` | `/messages/{message_id}` | Path: `message_id` | `200 OK` with `{id, from_, to, date, subject, body}` | Returns the full message body. |
-| `POST` | `/messages/{message_id}/mark-as-read` | Path: `message_id` | `200 OK` with `{ "status": "read" }` | Marks message read via Gmail modify endpoint. |
-| `DELETE` | `/messages/{message_id}` | Path: `message_id` | `200 OK` with `{ "status": "deleted" }` | Permanently deletes the Gmail message. |
+| `POST` | `/messages/{message_id}/mark-as-read` | Path: `message_id` | `200 OK` with `{success: true, message: "marked as read"}` | Marks message read via Gmail modify endpoint. |
+| `DELETE` | `/messages/{message_id}` | Path: `message_id` | `200 OK` with `{success: true, message: "deleted"}` | Permanently deletes the Gmail message. |
 
 ### Error Handling
 - Any exception raised by the underlying client is wrapped in `HTTPException(status_code=500, detail=str(exc))` (see `mail_client_service/__init__.py`).
@@ -91,5 +91,5 @@ for msg in messages:
 ### Interface Compliance
 - `ServiceMailClient` inherits the `mail_client_api.Client` ABC, so Python enforces the presence of all abstract methods at import time.
 - Unit tests validate every method (`get_messages`, `get_message`, `mark_as_read`, `delete_message`) returns objects or booleans consistent with the contract.
-- `ServiceMessage` implements the `mail_client_api.Message` properties and includes tests covering varied payload shapes to guarantee contract fidelity.
+- `ServiceMessage` implements the `mail_client_api.Message` interface; adapter tests confirm it exposes the expected fields from the generated `MessageDetail` with no extra JSON handling.
 - The E2E suite confirms that `mail_client_api.get_client()` returns an object behaving exactly like the local Gmail implementation while talking to the remote service.

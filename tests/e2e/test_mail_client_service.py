@@ -20,6 +20,7 @@ import mail_client_adapter
 import mail_client_api
 from mail_client_service.app import app, _client_factory, get_mail_client
 from mail_client_adapter import ServiceMailClient
+from mail_client_service import reset_client_cache
 
 pytestmark = pytest.mark.e2e
 
@@ -55,10 +56,7 @@ def _gmail_credentials_ready() -> None:
     token = workspace / "token.json"
 
     have_files = credentials.exists() or token.exists()
-    have_env = all(
-        os.environ.get(var)
-        for var in ("GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN")
-    )
+    have_env = all(os.environ.get(var) for var in ("GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"))
 
     if not (have_files or have_env):
         pytest.skip(
@@ -69,7 +67,8 @@ def _gmail_credentials_ready() -> None:
 @pytest.fixture
 def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailClient]:
     """Create a service-backed client that talks to the FastAPI app in-process."""
-    _client_factory.cache_clear()
+    app = mail_client_service.app
+    reset_client_cache()
 
     real_client = mail_client_api.get_client(interactive=False)
     app.dependency_overrides[get_mail_client] = lambda: real_client
@@ -86,8 +85,8 @@ def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailC
         yield client
     finally:
         http_client.close()
-        app.dependency_overrides.pop(get_mail_client, None)
-        _client_factory.cache_clear()
+        app.dependency_overrides.pop(mail_client_service.get_mail_client, None)
+        reset_client_cache()
         gmail_client_impl.register()
 
 

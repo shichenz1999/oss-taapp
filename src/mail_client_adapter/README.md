@@ -15,10 +15,9 @@ mail_client_adapter/
 ├── src/mail_client_adapter/
 │   ├── __init__.py                # Exposes register() and adapter classes
 │   ├── client_adapter.py          # ServiceMailClient: wraps the generated SDK and fulfils Client
-│   └── message_adapter.py         # ServiceMessage: adapts SDK/dict payloads to Message
+│   └── message_adapter.py         # ServiceMessage: adapts SDK payloads to Message
 └── tests/                         
     ├── test_client_adapter.py     # Verifies ServiceMailClient uses generated SDK correctly
-    ├── test_message_adapter_internals.py  # Validates payload adaptation & stringification
     └── test_register_helper.py    # Ensures register() overrides mail_client_api.get_client
 ```
 
@@ -29,7 +28,6 @@ mail_client_adapter/
 - `src/mail_client_adapter/message_adapter.py` – Defines `ServiceMessage`, turning service responses into objects with the expected `id/from_/to/date/subject/body` properties.
 - `tests/` – Focused pytest suite that exercises the adapter in isolation:
    - `test_client_adapter.py` – Patches the generated SDK to verify each client method.
-   - `test_message_adapter_internals.py` – Checks payload coercion edge cases.
    - `test_register_helper.py` – Confirms `register()` rebinds `mail_client_api.get_client`.
 
 ## Usage

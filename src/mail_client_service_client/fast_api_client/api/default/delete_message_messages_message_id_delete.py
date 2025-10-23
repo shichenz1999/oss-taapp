@@ -5,10 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.delete_message_messages_message_id_delete_response_delete_message_messages_message_id_delete import (
-    DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete,
-)
 from ...models.http_validation_error import HTTPValidationError
+from ...models.operation_response import OperationResponse
 from ...types import Response
 
 
@@ -25,13 +23,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
-]:
+) -> Optional[Union[HTTPValidationError, OperationResponse]]:
     if response.status_code == 200:
-        response_200 = DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete.from_dict(
-            response.json()
-        )
+        response_200 = OperationResponse.from_dict(response.json())
 
         return response_200
 
@@ -48,9 +42,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[
-    Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
-]:
+) -> Response[Union[HTTPValidationError, OperationResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -63,9 +55,7 @@ def sync_detailed(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Response[
-    Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
-]:
+) -> Response[Union[HTTPValidationError, OperationResponse]]:
     """Delete Message
 
     Args:
@@ -76,7 +66,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]]
+        Response[Union[HTTPValidationError, OperationResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -94,9 +84,7 @@ def sync(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
-]:
+) -> Optional[Union[HTTPValidationError, OperationResponse]]:
     """Delete Message
 
     Args:
@@ -107,7 +95,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
+        Union[HTTPValidationError, OperationResponse]
     """
 
     return sync_detailed(
@@ -120,9 +108,7 @@ async def asyncio_detailed(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Response[
-    Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
-]:
+) -> Response[Union[HTTPValidationError, OperationResponse]]:
     """Delete Message
 
     Args:
@@ -133,7 +119,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]]
+        Response[Union[HTTPValidationError, OperationResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -149,9 +135,7 @@ async def asyncio(
     message_id: str,
     *,
     client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
-]:
+) -> Optional[Union[HTTPValidationError, OperationResponse]]:
     """Delete Message
 
     Args:
@@ -162,7 +146,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[DeleteMessageMessagesMessageIdDeleteResponseDeleteMessageMessagesMessageIdDelete, HTTPValidationError]
+        Union[HTTPValidationError, OperationResponse]
     """
 
     return (
