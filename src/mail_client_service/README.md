@@ -1,7 +1,7 @@
 # Mail Client Service
 
 ## Overview
-`mail_client_service` wraps a FastAPI application around the `mail_client_api.Client` contract so mailbox capabilities are reachable over HTTP. The package binds whichever concrete client is registered (for example `gmail_client_impl`) and translates requests into method calls on that client.
+`mail_client_service` wraps a FastAPI application around the `mail_client_api.Client` contract so mailbox capabilities are reachable over HTTP. On import it loads `gmail_client_impl` to register the Gmail-backed client by default, but any package can swap the dependency by rebinding `mail_client_api.get_client` before startup.
 
 ## Responsibilities
 - Serve HTTP routes for core mailbox actions (list, fetch, mark-as-read, delete).
@@ -9,8 +9,22 @@
 - Provide a dependency hook (`get_mail_client`) so tests or alternative adapters can swap the client implementation.
 
 ## Key Modules
-- `src/mail_client_service/src/mail_client_service/__init__.py`: exports the FastAPI `app`, dependency factory, and route handlers.
-- `src/mail_client_service/tests/test_routes.py`: validates success and error paths by overriding `get_mail_client` with mocks.
+```
+mail_client_service/
+├── README.md                                # Package guide (this file)
+├── pyproject.toml                           # Package metadata and dependency definitions
+├── src/mail_client_service/
+│   ├── __init__.py                          # FastAPI app + dependency shims for consumers
+│   ├── main.py                              # Route handlers, dependency wiring, client cache helpers
+│   └── models.py                            # Pydantic response schemas shared by the API
+└── tests/
+    └── test_routes.py                       # Unit tests for the HTTP layer using fake mail clients
+```
+
+- `src/mail_client_service/src/mail_client_service/__init__.py` – Re-exports `app`, `get_mail_client`, and `reset_client_cache` so the package can be mounted with a single import.
+- `src/mail_client_service/src/mail_client_service/main.py` – Builds the FastAPI instance, defines each route, and manages the cached `mail_client_api.Client`.
+- `src/mail_client_service/src/mail_client_service/models.py` – Declares the Pydantic models serialised in API responses (`MessageSummary`, `MessageDetail`, `OperationResponse`).
+- `src/mail_client_service/tests/test_routes.py` – Exercises success and failure flows by overriding `get_mail_client` with mocks.
 
 ## API Reference
 
@@ -89,4 +103,4 @@ curl "http://127.0.0.1:8000/messages?max_results=5"
 uv run pytest --no-cov src/mail_client_service/tests/test_routes.py
 ```
 
-Tests override `get_mail_client` to exercise the routes without hitting external providers.
+Tests override `get_mail_client` with fakes so the HTTP layer can be validated without hitting external providers; cache behaviour is covered explicitly via `reset_client_cache`.
