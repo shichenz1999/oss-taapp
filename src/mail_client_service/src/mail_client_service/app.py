@@ -13,14 +13,17 @@ app = FastAPI()
 
 @lru_cache(maxsize=1)
 def _client_factory() -> mail_client_api.Client:
+    """Return (and cache) the current mail client implementation."""
     return mail_client_api.get_client(interactive=False)
 
 
 def get_mail_client() -> mail_client_api.Client:
+    """Expose the cached mail client for FastAPI dependency injection."""
     return _client_factory()
 
 
 def msg_summary_to_dict(msg: Message) -> dict[str, str]:
+    """Map a message object to its summary JSON representation."""
     return {
         "id": msg.id,
         "from_": msg.from_,
@@ -31,6 +34,7 @@ def msg_summary_to_dict(msg: Message) -> dict[str, str]:
 
 
 def msg_to_dict(msg: Message) -> dict[str, str]:
+    """Map a message object to its detailed JSON representation."""
     return {
         "id": msg.id,
         "from_": msg.from_,
@@ -46,6 +50,7 @@ def list_messages(
     client: Annotated[mail_client_api.Client, Depends(get_mail_client)],
     max_results: int = 10,
 ) -> list[dict[str, str]]:
+    """Return a list of message summaries from the backing client."""
     try:
         msgs = client.get_messages(max_results=max_results)
     except Exception as exc:
@@ -73,6 +78,7 @@ def mark_as_read(
     message_id: str,
     client: Annotated[mail_client_api.Client, Depends(get_mail_client)],
 ) -> dict[str, str]:
+    """Mark the requested message as read."""
     if not client.mark_as_read(message_id):
         raise HTTPException(status_code=500, detail="Failed to mark message as read")
 
@@ -84,6 +90,7 @@ def delete_message(
     message_id: str,
     client: Annotated[mail_client_api.Client, Depends(get_mail_client)],
 ) -> dict[str, str]:
+    """Delete the requested message."""
     if not client.delete_message(message_id):
         raise HTTPException(status_code=500, detail="Failed to delete message")
 

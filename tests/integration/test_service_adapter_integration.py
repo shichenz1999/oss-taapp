@@ -12,10 +12,9 @@ from starlette.types import ASGIApp
 
 import gmail_client_impl
 import mail_client_api
-from mail_client_service.app import app, get_mail_client, _client_factory
 import mail_client_adapter
 from mail_client_adapter import ServiceMailClient
-from mail_client_service import reset_client_cache
+from mail_client_service import app, get_mail_client, reset_client_cache
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_SRC = REPO_ROOT / "src" / "mail_client_adapter" / "src"
@@ -25,8 +24,8 @@ if str(ADAPTER_SRC) not in sys.path:
 pytestmark = pytest.mark.integration
 
 
-def _build_sync_transport(app: ASGIApp) -> httpx.MockTransport:
-    asgi_transport = httpx.ASGITransport(app=app)
+def _build_sync_transport(asgi_app: ASGIApp) -> httpx.MockTransport:
+    asgi_transport = httpx.ASGITransport(app=asgi_app)
 
     def _handler(request: httpx.Request) -> httpx.Response:
         async def _invoke() -> httpx.Response:
@@ -62,8 +61,7 @@ def test_mail_client_adapter_round_trip_through_service() -> None:
     gmail_mock.mark_as_read.return_value = True
     gmail_mock.delete_message.return_value = True
 
-    app = mail_client_service.app
-    app.dependency_overrides[mail_client_service.get_mail_client] = lambda: gmail_mock
+    app.dependency_overrides[get_mail_client] = lambda: gmail_mock
     reset_client_cache()
 
     base_url = "http://testserver"
@@ -98,6 +96,6 @@ def test_mail_client_adapter_round_trip_through_service() -> None:
         gmail_mock.delete_message.assert_called_once_with(sample_message.id)
     finally:
         transport.close()
-        app.dependency_overrides.pop(mail_client_service.get_mail_client, None)
+        app.dependency_overrides.pop(get_mail_client, None)
         reset_client_cache()
         gmail_client_impl.register()

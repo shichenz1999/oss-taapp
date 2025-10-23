@@ -18,18 +18,17 @@ import pytest
 import gmail_client_impl
 import mail_client_adapter
 import mail_client_api
-from mail_client_service.app import app, _client_factory, get_mail_client
 from mail_client_adapter import ServiceMailClient
-from mail_client_service import reset_client_cache
+from mail_client_service import app, get_mail_client, reset_client_cache
 
 pytestmark = pytest.mark.e2e
 
 BASE_URL = "http://testserver"
 
 
-def _build_sync_transport(app: ASGIApp) -> httpx.MockTransport:
+def _build_sync_transport(asgi_app: ASGIApp) -> httpx.MockTransport:
     """Return a synchronous transport that drives the ASGI app in-process."""
-    asgi_transport = httpx.ASGITransport(app=app)
+    asgi_transport = httpx.ASGITransport(app=asgi_app)
 
     def _handler(request: httpx.Request) -> httpx.Response:
         async def _invoke() -> httpx.Response:
@@ -67,7 +66,6 @@ def _gmail_credentials_ready() -> None:
 @pytest.fixture
 def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailClient]:
     """Create a service-backed client that talks to the FastAPI app in-process."""
-    app = mail_client_service.app
     reset_client_cache()
 
     real_client = mail_client_api.get_client(interactive=False)
@@ -85,7 +83,7 @@ def service_mail_client(_gmail_credentials_ready: None) -> Iterator[ServiceMailC
         yield client
     finally:
         http_client.close()
-        app.dependency_overrides.pop(mail_client_service.get_mail_client, None)
+        app.dependency_overrides.pop(get_mail_client, None)
         reset_client_cache()
         gmail_client_impl.register()
 
