@@ -1,0 +1,27 @@
+[project]
+name = "mail-client-adapter"
+version = "0.1.0"
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+
+dependencies = []
+
+[tool.coverage.run]
+source_pkgs = ["mail_client_adapter", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/mail_client_adapter/__about__.py",
+]
+
+[tool.coverage.paths]
+mail_client_adapter = ["src/mail_client_adapter", "*/mail-client-adapter/src/mail_client_adapter"]
+tests = ["tests", "*/mail-client-adapter/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
