@@ -31,6 +31,8 @@ members = [
   "src/gmail_client_impl",
   "src/mail_client_service",
   "src/mail_client_adapter",
+  "src/ai_conversation_api",
+  "src/ai_conversation_impl",
 ]
 
 [tool.ruff]

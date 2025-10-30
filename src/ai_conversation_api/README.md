@@ -6,21 +6,22 @@
 ## Purpose
 - Describe the interaction surface available to consumers of conversational backends.
 - Provide a single factory (`get_client`) that concrete adapters can override.
-- Keep conversation-specific types explicit through the `ai_conversation_api.message` module.
+- Keep conversation-specific types explicit through the `ai_conversation_api.message` and `ai_conversation_api.session` modules.
 
 ## Architecture
 
 ### Component Design
-The package exposes one abstract client focused on conversational flows—creating threads, sending messages, retrieving history, and streaming replies. It depends solely on the `Message` and `Conversation` abstractions.
+The package exposes an abstract `Client` that is responsible for creating and managing conversation *sessions*. Sessions implement the `Session` contract and in turn produce `Message` objects. No concrete networking or storage logic ships with the API package.
 
 ### API Integration
 ```python
 from ai_conversation_api import Client, get_client
-from ai_conversation_api.message import Conversation, Message
+from ai_conversation_api.session import Session
+from ai_conversation_api.message import Message
 
 client: Client = get_client()
-conversation: Conversation = client.create_conversation()
-reply: Message = client.send_message(conversation_id=conversation.id, content="Hello!")
+session: Session = client.create_session()
+reply: Message = client.send(content="Hello!")
 ```
 
 ### Dependency Injection
@@ -41,12 +42,35 @@ class Client(ABC):
 ```
 
 #### Methods
-- `create_conversation() -> Conversation`: Start a new conversation thread.
-- `send_message(content: str, *, conversation_id: str | None = None, stream: bool = False) -> Message | Iterator[Message]`: Append a user message, optionally stream the assistant reply, and create a default conversation when none supplied.
-- `get_conversation(conversation_id: str) -> Conversation`: Retrieve a conversation with its accumulated messages.
-- `list_messages(conversation_id: str, *, max_results: int | None = None) -> Iterator[Message]`: Iterate over messages in a conversation.
-- `list_conversations(max_results: int = 10) -> Iterator[Conversation]`: Enumerate conversations.
-- `delete_conversation(conversation_id: str) -> bool`: Remove a conversation if supported by the provider.
+- `create_session(*, name: str | None = None, **kwargs: Any) -> Session`: Start a new conversational session.
+- `send(content: str, *, session_id: str | None = None) -> Message`: Append a user message, creating a session when none supplied.
+- `get_session(session_id: str) -> Session`: Retrieve a previously created session.
+- `list_sessions() -> Iterable[Session]`: Enumerate known sessions.
+- `delete_session(session_id: str) -> bool`: Remove a session if supported by the provider.
+
+### Session Abstract Base Class
+```python
+class Session(ABC):
+    ...
+```
+
+#### Key Properties / Methods
+- `id -> str`: Stable identifier for the session.
+- `model -> str | None`: Optional identifier for the backing model.
+- `history -> Iterable[Message]`: Immutable view of past messages.
+- `send(content: str) -> Message`: Append a user message and return the assistant reply.
+- `reset() -> None`: Clear stored context.
+
+### Message Abstract Base Class
+```python
+class Message(ABC):
+    ...
+```
+
+#### Key Properties
+- `id -> str`: Unique identifier for the message.
+- `role -> str`: Sender role (for example `user`, `assistant`, `system`).
+- `content -> str`: Textual payload.
 
 ### Factory Function
 `get_client(*, api_key: str | None = None, **kwargs: Any) -> Client`: Returns the bound implementation or raises `NotImplementedError` when none registered.
@@ -58,32 +82,20 @@ class Client(ABC):
 from ai_conversation_api import get_client
 
 client = get_client()
-conversation = client.create_conversation()
+session = client.create_session()
 
-greeting = client.send_message(conversation_id=conversation.id, content="Hello!")
+greeting = session.send("Hello!")
 print(greeting.content)
-```
 
-### Streaming Replies
-```python
-from ai_conversation_api import get_client
-
-client = get_client()
-conversation = client.create_conversation()
-
-for chunk in client.send_message(
-    conversation_id=conversation.id,
-    content="Please explain quicksort step by step.",
-    stream=True,
-):
-    print(chunk.content, end="", flush=True)
+follow_up = client.send("Remind me to stretch every hour.")
+print(follow_up.content)
 ```
 
 ## Implementation Checklist
-1. Implement each abstract method in `Client`.
-2. Return objects compatible with `ai_conversation_api.message.Message` and `Conversation`.
+1. Implement every abstract method in `Client`, `Session`, and any other relevant contracts.
+2. Return objects compatible with `ai_conversation_api.session.Session` and `ai_conversation_api.message.Message`.
 3. Publish a factory (for example `get_client_impl`) and assign it to `ai_conversation_api.get_client`.
-4. Honour the optional `conversation_id` parameter in `send_message` by creating or reusing a sensible default thread when omitted.
+4. Honour the optional `session_id` parameter in `Client.send` by creating or reusing a sensible default session when omitted.
 
 ## Testing
 ```bash

@@ -1,0 +1,41 @@
+[project]
+name = "ai-conversation-impl"
+version = "0.1.0"
+description = "Anthropic Claude-backed implementation of the AI conversation API."
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.39.0",
+    "tinydb>=4.8.2",
+    "python-dotenv>=1.0.1",
+    "ai-conversation-api",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+testpaths = ["tests", "src/ai_conversation_impl/tests"]
+addopts = ["--cov", "--cov-report=term-missing"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ai_conversation_impl"]
+
+[tool.uv.sources]
+ai-conversation-api = { workspace = true }
