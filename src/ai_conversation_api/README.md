@@ -85,10 +85,10 @@ client = get_client()
 session = client.create_session()
 
 greeting = session.send("Hello!")
-print(greeting.content)
+print(greeting)
 
 follow_up = client.send("Remind me to stretch every hour.")
-print(follow_up.content)
+print(follow_up)
 ```
 
 ## Implementation Checklist
