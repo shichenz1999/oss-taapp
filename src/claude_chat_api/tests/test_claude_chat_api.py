@@ -51,4 +51,4 @@ def test_abstract_api_send_message_contract() -> None:
 def test_abstract_api_cannot_instantiate_directly() -> None:
     """Abstract classes remain non-instantiable until implemented."""
     with pytest.raises(TypeError):
-        AbstractClaudeChatAPI()
+        AbstractClaudeChatAPI()  # type: ignore[abstract]

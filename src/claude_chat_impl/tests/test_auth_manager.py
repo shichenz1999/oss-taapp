@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 import pytest
+from pytest_mock import MockerFixture
 
 from claude_chat_impl.auth_manager import AuthManager
 
@@ -20,7 +21,7 @@ def _stub_settings() -> SimpleNamespace:
     )
 
 
-def test_get_authorization_url_builds_expected_query(mocker) -> None:
+def test_get_authorization_url_builds_expected_query(mocker: MockerFixture) -> None:
     """The authorization URL must include the required OAuth parameters."""
     mocker.patch("claude_chat_impl.auth_manager.settings", _stub_settings())
 
@@ -39,7 +40,7 @@ def test_get_authorization_url_builds_expected_query(mocker) -> None:
     assert params["access_type"] == ["offline"]
 
 
-def test_exchange_code_for_tokens_success(mocker) -> None:
+def test_exchange_code_for_tokens_success(mocker: MockerFixture) -> None:
     """Successful code exchange returns the JSON payload from the token endpoint."""
     fake_settings = _stub_settings()
     mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
@@ -70,7 +71,7 @@ def test_exchange_code_for_tokens_success(mocker) -> None:
     assert tokens == {"access_token": "token-abc"}
 
 
-def test_exchange_code_for_tokens_propagates_http_error(mocker) -> None:
+def test_exchange_code_for_tokens_propagates_http_error(mocker: MockerFixture) -> None:
     """HTTP errors from the token endpoint are surfaced to the caller."""
     fake_settings = _stub_settings()
     mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
@@ -92,7 +93,7 @@ def test_exchange_code_for_tokens_propagates_http_error(mocker) -> None:
         manager.exchange_code_for_tokens("bad-code")
 
 
-def test_get_user_info_returns_profile_payload(mocker) -> None:
+def test_get_user_info_returns_profile_payload(mocker: MockerFixture) -> None:
     """The user info request forwards the bearer token and returns the JSON response."""
     fake_settings = _stub_settings()
     mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
@@ -116,7 +117,7 @@ def test_get_user_info_returns_profile_payload(mocker) -> None:
     assert profile == {"email": "user@example.com"}
 
 
-def test_get_user_info_propagates_http_error(mocker) -> None:
+def test_get_user_info_propagates_http_error(mocker: MockerFixture) -> None:
     """Errors from the userinfo endpoint bubble up for the caller to handle."""
     fake_settings = _stub_settings()
     mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)

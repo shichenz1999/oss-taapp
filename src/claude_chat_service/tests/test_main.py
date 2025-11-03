@@ -8,7 +8,8 @@ from pytest_mock import MockerFixture
 
 from claude_chat_api import Message, MessageRole
 from claude_chat_service import main
-from claude_chat_service.main import app, get_current_user_id
+from claude_chat_service.auth_deps import get_current_user_id
+from claude_chat_service.main import app
 
 
 @pytest.fixture
