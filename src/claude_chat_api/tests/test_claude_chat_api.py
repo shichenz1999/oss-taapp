@@ -6,12 +6,12 @@ from unittest.mock import Mock
 
 import pytest
 from pydantic import ValidationError
+from claude_chat_api import AbstractClaudeChatAPI, Message, MessageRole
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "src"
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
-from claude_chat_api import AbstractClaudeChatAPI, Message, MessageRole
 
 
 def test_message_role_values() -> None:

@@ -78,6 +78,7 @@ mypy_path = [
     "src/gmail_client_impl/src",
     "src/mail_client_service/src",
     "src/mail_client_adapter/src",
+    "src/claude_chat_api/src",
     "src/claude_chat_impl/src",
     "src/claude_chat_service/src",
     "src/mail_client_service_client",

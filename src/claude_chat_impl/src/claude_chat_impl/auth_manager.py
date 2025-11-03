@@ -1,25 +1,28 @@
-# claude_chat_impl/src/claude_chat_impl/auth_manager.py
+
+"""OAuth helper responsible for the Google authorization code flow."""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, cast
 
 import httpx
-from typing import Dict, Any
 
-# Import our centralized settings
 from .settings import settings
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+LOGGER = logging.getLogger(__name__)
+
+
 class AuthManager:
-    """
-    Handles all logic related to the OAuth 2.0 Authorization Code Flow.
-    This class is pure business logic, independent of the web framework.
-    """
+    """Handle the OAuth 2.0 Authorization Code Flow."""
 
     def get_authorization_url(self) -> str:
-        """
-        Generates the URL to which the user must be redirected to
-        log in with the external provider (e.g., Google).
-        """
+        """Generate the provider login URL to initiate the flow."""
         scope = "openid email profile"
-        
-        auth_url = (
+        return (
             f"{settings.OAUTH_AUTH_URL}?"
             f"response_type=code&"
             f"client_id={settings.OAUTH_CLIENT_ID}&"
@@ -27,14 +30,9 @@ class AuthManager:
             f"scope={scope}&"
             f"access_type=offline"
         )
-        return auth_url
 
-    def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
-        """
-        Handles the /auth/callback step.
-        Exchanges the temporary 'code' for an 'access_token'.
-        This is a synchronous, server-to-server request.
-        """
+    def exchange_code_for_tokens(self, code: str) -> Mapping[str, object]:
+        """Exchange the authorization code for access and refresh tokens."""
         token_request_data = {
             "code": code,
             "client_id": settings.OAUTH_CLIENT_ID,
@@ -43,35 +41,24 @@ class AuthManager:
             "grant_type": "authorization_code",
         }
 
-        # Use httpx to make the POST request
-        # 'with' ensures the client is closed properly
         with httpx.Client() as client:
             try:
-                response = client.post(
-                    settings.OAUTH_TOKEN_URL, 
-                    data=token_request_data
-                )
-                response.raise_for_status() # Raises on 4xx/5xx
-                return response.json()
-            except httpx.HTTPStatusError as e:
-                print(f"Token exchange failed: {e.response.text}")
+                response = client.post(settings.OAUTH_TOKEN_URL, data=token_request_data)
+                response.raise_for_status()
+                return cast("Mapping[str, object]", response.json())
+            except httpx.HTTPStatusError as exc:
+                LOGGER.exception("Token exchange failed: %s", exc.response.text)
                 raise
 
-    def get_user_info(self, access_token: str) -> Dict[str, Any]:
-        """
-        Uses the 'access_token' to fetch the user's profile information
-        from the provider's userinfo endpoint.
-        """
+    def get_user_info(self, access_token: str) -> Mapping[str, object]:
+        """Fetch the authenticated user's profile from the provider."""
         headers = {"Authorization": f"Bearer {access_token}"}
-        
+
         with httpx.Client() as client:
             try:
-                response = client.get(
-                    settings.OAUTH_USERINFO_URL, 
-                    headers=headers
-                )
+                response = client.get(settings.OAUTH_USERINFO_URL, headers=headers)
                 response.raise_for_status()
-                return response.json()
-            except httpx.HTTPStatusError as e:
-                print(f"Failed to get user info: {e.response.text}")
+                return cast("Mapping[str, object]", response.json())
+            except httpx.HTTPStatusError as exc:
+                LOGGER.exception("Failed to get user info: %s", exc.response.text)
                 raise

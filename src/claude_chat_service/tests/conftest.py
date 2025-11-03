@@ -2,7 +2,6 @@
 
 import os
 
-
 DEFAULT_ENV = {
     "CLAUDE_API_KEY": "test-claude-key",
     "OAUTH_CLIENT_ID": "test-client-id",

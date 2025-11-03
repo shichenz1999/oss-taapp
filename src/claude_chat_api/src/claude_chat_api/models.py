@@ -1,20 +1,19 @@
-# src/claude_chat_api/models.py
+"""Data models shared by Claude chat components."""
 
 from enum import Enum
+
 from pydantic import BaseModel
 
+
 class MessageRole(str, Enum):
-    """
-    Defines the role of the entity creating a message.
-    'user' is for the end-user, 'assistant' is for the AI.
-    """
+    """Identify whether a message came from the user or assistant."""
+
     USER = "user"
     ASSISTANT = "assistant"
 
+
 class Message(BaseModel):
-    """
-    A single chat message. This is the fundamental data model
-    for our API.
-    """
+    """Representation of a single Claude chat message."""
+
     role: MessageRole
     content: str
