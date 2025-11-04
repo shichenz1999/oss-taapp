@@ -35,6 +35,8 @@ members = [
   "src/claude_chat_api",
   "src/claude_chat_impl",
   "src/claude_chat_service",
+  "src/claude_chat_service_client",
+  "src/claude_chat_adapter",
 ]
 
 [tool.ruff]
@@ -80,6 +82,8 @@ mypy_path = [
     "src/mail_client_adapter/src",
     "src/claude_chat_impl/src",
     "src/claude_chat_service/src",
+    "src/claude_chat_service_client",
+    "src/claude_chat_adapter/src",
     "src/mail_client_service_client",
 ]
 ignore_missing_imports = false
@@ -122,8 +126,10 @@ pythonpath = [
     "src/claude_chat_api/src",
     "src/claude_chat_impl/src",
     "src/claude_chat_service/src",
+    "src/claude_chat_service_client",
+    "src/claude_chat_adapter/src",
 ]
-testpaths = ["tests", "src/*/tests"]
+testpaths = ["tests", "src/*/tests", "e2e", "integration"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",

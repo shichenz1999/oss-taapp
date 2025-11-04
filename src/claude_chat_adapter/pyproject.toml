@@ -1,0 +1,18 @@
+[project]
+name = "claude-chat-adapter"
+version = "0.1.0"
+description = "Adapter implementing claude_chat_api over HTTP using claude_chat_service_client"
+requires-python = ">=3.11"
+dependencies = [
+    "claude-chat-api",
+    "claude_chat_service_client",
+]
+
+[tool.uv.sources]
+claude-chat-api = { workspace = true }
+claude_chat_service_client = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+

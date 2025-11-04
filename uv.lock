@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -8,9 +8,11 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "claude-chat-adapter",
     "claude-chat-api",
     "claude-chat-impl",
     "claude-chat-service",
+    "claude-chat-service-client",
     "gmail-client-impl",
     "mail-client-adapter",
     "mail-client-api",
@@ -234,6 +236,21 @@ wheels = [
 ]
 
 [[package]]
+name = "claude-chat-adapter"
+version = "0.1.0"
+source = { editable = "src/claude_chat_adapter" }
+dependencies = [
+    { name = "claude-chat-api" },
+    { name = "claude-chat-service-client" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "claude-chat-api", editable = "src/claude_chat_api" },
+    { name = "claude-chat-service-client", editable = "src/claude_chat_service_client" },
+]
+
+[[package]]
 name = "claude-chat-api"
 version = "0.1.0"
 source = { editable = "src/claude_chat_api" }
@@ -301,6 +318,23 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29.0" },
 ]
 provides-extras = ["test"]
+
+[[package]]
+name = "claude-chat-service-client"
+version = "1.0.0"
+source = { editable = "src/claude_chat_service_client" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx" },
+    { name = "python-dateutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attrs", specifier = ">=22.2.0" },
+    { name = "httpx", specifier = ">=0.23.0,<0.29.0" },
+    { name = "python-dateutil", specifier = ">=2.8.0" },
+]
 
 [[package]]
 name = "click"

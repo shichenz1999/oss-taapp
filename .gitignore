@@ -31,6 +31,7 @@ site/
 token.json
 .env
 credentials.json
+claude_keys.db
 
 .coverage*
 TESTING_STATUS.md

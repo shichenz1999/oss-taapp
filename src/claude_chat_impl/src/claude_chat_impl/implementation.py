@@ -7,34 +7,44 @@ from claude_chat_api import AbstractClaudeChatAPI, Message, MessageRole
 
 # 2. Import our settings
 from .settings import settings
+from .user_key_store import ClaudeAPIKeyRepository
 
-# 3. Create a single, module-level Anthropic client
-# This is best practice for performance and connection management.
-try:
-    claude_client = anthropic.Anthropic(
-        api_key=settings.CLAUDE_API_KEY
-    )
-except Exception as e:
-    print(f"Failed to initialize Anthropic client: {e}")
-    raise
+
+class MissingClaudeAPIKeyError(RuntimeError):
+    """Raised when a user tries to chat without registering their Claude API key."""
 
 
 class ClaudeChatImplementation(AbstractClaudeChatAPI):
-    """
-    The concrete implementation of the AbstractClaudeChatAPI.
+    """The concrete implementation of the AbstractClaudeChatAPI.
     This class provides the real logic to call the Anthropic (Claude) API.
     """
 
+    def __init__(self, key_repository: ClaudeAPIKeyRepository | None = None) -> None:
+        self._key_repository = key_repository or ClaudeAPIKeyRepository(
+            settings.CLAUDE_KEY_DB_PATH
+        )
+
+    def _create_client(self, api_key: str) -> anthropic.Anthropic:
+        """Factory so we can swap the client easily during testing."""
+        return anthropic.Anthropic(api_key=api_key)
+
     def send_message(self, prompt: str, user_id: str) -> Message:
-        """
-        Sends a single user prompt to the AI and returns the response.
+        """Sends a single user prompt to the AI and returns the response.
         
         This implementation is STATELESS, matching our minimal API.
         It does not store or use chat history.
         """
-        
         # We can use the user_id for logging or auditing
         print(f"[ClaudeImpl] Processing request for user_id: {user_id}")
+
+        api_key = self._key_repository.get_api_key(user_id)
+        if api_key is None:
+            raise MissingClaudeAPIKeyError(
+                "No Claude API key registered for this user. "
+                "Please set your key before chatting."
+            )
+
+        claude_client = self._create_client(api_key=api_key)
 
         try:
             # 1. Call the Claude API
@@ -44,7 +54,7 @@ class ClaudeChatImplementation(AbstractClaudeChatAPI):
                 system="You are a helpful assistant.",
                 messages=[
                     # Since we are stateless, we only send the new prompt
-                    {"role": "user", "content": prompt} 
+                    {"role": "user", "content": prompt}
                 ]
             )
 
@@ -59,7 +69,7 @@ class ClaudeChatImplementation(AbstractClaudeChatAPI):
                 role=MessageRole.ASSISTANT,
                 content=ai_text
             )
-        
+
         except anthropic.APIError as e:
             print(f"Error calling Anthropic API: {e}")
             # We re-raise the error for the service layer to handle

@@ -22,8 +22,7 @@ def _resolve_env_files() -> tuple[str, ...]:
     return tuple(unique)
 
 class AppSettings(BaseSettings):
-    """
-    Manages all application settings and secrets.
+    """Manages all application settings and secrets.
     It reads values from environment variables or a .env file.
     
     The .env file is expected to be in the monorepo root,
@@ -31,7 +30,7 @@ class AppSettings(BaseSettings):
     """
 
     # 1. Claude (Anthropic) API Key
-    CLAUDE_API_KEY: str = Field(..., env="CLAUDE_API_KEY")
+    CLAUDE_API_KEY: str | None = Field(default=None, env="CLAUDE_API_KEY")
 
     # 2. OAuth 2.0 (e.g., Google) Credentials
     OAUTH_CLIENT_ID: str = Field(..., env="OAUTH_CLIENT_ID")
@@ -42,6 +41,12 @@ class AppSettings(BaseSettings):
     OAUTH_AUTH_URL: str = "https://accounts.google.com/o/oauth2/v2/auth"
     OAUTH_TOKEN_URL: str = "https://oauth2.googleapis.com/token"
     OAUTH_USERINFO_URL: str = "https://www.googleapis.com/oauth2/v1/userinfo"
+
+    # 3b. Storage for per-user Claude API keys
+    CLAUDE_KEY_DB_PATH: str = Field(
+        default="claude_keys.db",
+        env="CLAUDE_KEY_DB_PATH",
+    )
 
     # 4. JWT Session Token Configuration
     SESSION_SECRET_KEY: str = Field(..., env="SESSION_SECRET_KEY")
