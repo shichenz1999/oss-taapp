@@ -11,7 +11,7 @@ from claude_chat_service import main
 from claude_chat_service.main import app, get_current_user_id
 
 
-@pytest.fixture()
+@pytest.fixture
 def client() -> Iterator[TestClient]:
     """Provide a TestClient with automatic teardown."""
     with TestClient(app) as c:

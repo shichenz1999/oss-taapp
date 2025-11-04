@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-__all__ = ["Message", "Conversation", "get_message", "get_conversation"]
+__all__ = ["Conversation", "Message", "get_conversation", "get_message"]
 
 
 class Message(ABC):

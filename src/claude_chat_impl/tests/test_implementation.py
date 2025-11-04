@@ -1,16 +1,16 @@
 # claude_chat_impl/tests/test_implementation.py
 
-import pytest
 from unittest.mock import MagicMock
 
 # Import what we are testing
 from claude_chat_impl.implementation import ClaudeChatImplementation
+
 # Import the contract models
 from claude_chat_api import Message, MessageRole
 
+
 def test_send_message_success(mocker):
-    """
-    Tests a successful send_message call by mocking the
+    """Tests a successful send_message call by mocking the
     claude_client.
     """
     # 1. Setup the Mock
@@ -22,12 +22,9 @@ def test_send_message_success(mocker):
     mock_content.text = "This is a mock AI reply."
     mock_response.content = [mock_content]
     mock_client.messages.create.return_value = mock_response
-    
+
     # This replaces the 'claude_client' in that file with our mock
-    mocker.patch(
-        'claude_chat_impl.implementation.claude_client', 
-        mock_client
-    )
+    mocker.patch("claude_chat_impl.implementation.claude_client", mock_client)
 
     # 2. Create an instance of our class
     impl = ClaudeChatImplementation()
@@ -48,5 +45,5 @@ def test_send_message_success(mocker):
         model="claude-3-haiku-20240307",
         max_tokens=1024,
         system="You are a helpful assistant.",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
     )

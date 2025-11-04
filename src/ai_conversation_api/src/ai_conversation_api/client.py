@@ -26,7 +26,8 @@ class Client(ABC):
         stream: bool = False,
     ) -> Message | Iterator[Message]:
         """Send a message; when `conversation_id` is None, implementations should
-        create or reuse a default conversation internally and return the reply."""
+        create or reuse a default conversation internally and return the reply.
+        """
         raise NotImplementedError
 
     @abstractmethod

@@ -21,11 +21,11 @@ def _resolve_env_files() -> tuple[str, ...]:
             unique.append(item)
     return tuple(unique)
 
+
 class AppSettings(BaseSettings):
-    """
-    Manages all application settings and secrets.
+    """Manages all application settings and secrets.
     It reads values from environment variables or a .env file.
-    
+
     The .env file is expected to be in the monorepo root,
     one level above this component's directory.
     """
@@ -53,6 +53,7 @@ class AppSettings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
 
 # Create a single, globally accessible instance of the settings.
 try:

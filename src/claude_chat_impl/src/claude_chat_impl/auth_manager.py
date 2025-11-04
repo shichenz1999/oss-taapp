@@ -1,24 +1,24 @@
 # claude_chat_impl/src/claude_chat_impl/auth_manager.py
 
+from typing import Any
+
 import httpx
-from typing import Dict, Any
 
 # Import our centralized settings
 from .settings import settings
 
+
 class AuthManager:
-    """
-    Handles all logic related to the OAuth 2.0 Authorization Code Flow.
+    """Handles all logic related to the OAuth 2.0 Authorization Code Flow.
     This class is pure business logic, independent of the web framework.
     """
 
     def get_authorization_url(self) -> str:
-        """
-        Generates the URL to which the user must be redirected to
+        """Generates the URL to which the user must be redirected to
         log in with the external provider (e.g., Google).
         """
         scope = "openid email profile"
-        
+
         auth_url = (
             f"{settings.OAUTH_AUTH_URL}?"
             f"response_type=code&"
@@ -29,9 +29,8 @@ class AuthManager:
         )
         return auth_url
 
-    def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
-        """
-        Handles the /auth/callback step.
+    def exchange_code_for_tokens(self, code: str) -> dict[str, Any]:
+        """Handles the /auth/callback step.
         Exchanges the temporary 'code' for an 'access_token'.
         This is a synchronous, server-to-server request.
         """
@@ -47,29 +46,22 @@ class AuthManager:
         # 'with' ensures the client is closed properly
         with httpx.Client() as client:
             try:
-                response = client.post(
-                    settings.OAUTH_TOKEN_URL, 
-                    data=token_request_data
-                )
-                response.raise_for_status() # Raises on 4xx/5xx
+                response = client.post(settings.OAUTH_TOKEN_URL, data=token_request_data)
+                response.raise_for_status()  # Raises on 4xx/5xx
                 return response.json()
             except httpx.HTTPStatusError as e:
                 print(f"Token exchange failed: {e.response.text}")
                 raise
 
-    def get_user_info(self, access_token: str) -> Dict[str, Any]:
-        """
-        Uses the 'access_token' to fetch the user's profile information
+    def get_user_info(self, access_token: str) -> dict[str, Any]:
+        """Uses the 'access_token' to fetch the user's profile information
         from the provider's userinfo endpoint.
         """
         headers = {"Authorization": f"Bearer {access_token}"}
-        
+
         with httpx.Client() as client:
             try:
-                response = client.get(
-                    settings.OAUTH_USERINFO_URL, 
-                    headers=headers
-                )
+                response = client.get(settings.OAUTH_USERINFO_URL, headers=headers)
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:

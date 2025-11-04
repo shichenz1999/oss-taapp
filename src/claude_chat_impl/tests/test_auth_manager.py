@@ -49,9 +49,7 @@ def test_exchange_code_for_tokens_success(mocker) -> None:
 
     mock_client = mocker.MagicMock()
     mock_client.post.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = (
-        mock_client
-    )
+    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     tokens = manager.exchange_code_for_tokens("auth-code")
@@ -83,9 +81,7 @@ def test_exchange_code_for_tokens_propagates_http_error(mocker) -> None:
     mock_response.raise_for_status.side_effect = http_error
     mock_client = mocker.MagicMock()
     mock_client.post.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = (
-        mock_client
-    )
+    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     with pytest.raises(httpx.HTTPStatusError):
@@ -101,9 +97,7 @@ def test_get_user_info_returns_profile_payload(mocker) -> None:
     mock_response.json.return_value = {"email": "user@example.com"}
     mock_client = mocker.MagicMock()
     mock_client.get.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = (
-        mock_client
-    )
+    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     profile = manager.get_user_info("token-abc")
@@ -129,9 +123,7 @@ def test_get_user_info_propagates_http_error(mocker) -> None:
     mock_response.raise_for_status.side_effect = http_error
     mock_client = mocker.MagicMock()
     mock_client.get.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = (
-        mock_client
-    )
+    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     with pytest.raises(httpx.HTTPStatusError):
