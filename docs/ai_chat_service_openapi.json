@@ -46,6 +46,26 @@
         }
       }
     },
+    "/auth/logout": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout",
+        "description": "Clears the session cookie and redirects the user back to the API docs.",
+        "operationId": "logout_auth_logout_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/callback": {
       "get": {
         "tags": [

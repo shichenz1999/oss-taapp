@@ -24,9 +24,9 @@ oss-taapp/
 │   ├── gmail_client_impl/        # HW1 Gmail implementation
 │   ├── mail_client_service/      # HW1 FastAPI service for mail
 │   ├── mail_client_adapter/      # HW1 adapter for generated client
-│   ├── claude_chat_api/          # HW2 abstract contract
+│   ├── ai_chat_api/              # HW2 abstract contract
 │   ├── claude_chat_impl/         # HW2 Claude + OAuth implementation
-│   └── claude_chat_service/      # HW2 FastAPI deployment
+│   └── ai_chat_service/          # HW2 FastAPI deployment
 ├── tests/                        # Cross-component tests
 ├── README.md
 ├── pyproject.toml                # Workspace + tooling config
@@ -131,21 +131,21 @@ Pytest markers such as `integration`, `e2e`, and `local_credentials` let you tar
 ### Goal
 Deliver a minimal Claude-powered chat microservice with OAuth-protected access. Core packages:
 
-- `claude_chat_api`: Abstract interface + Pydantic message model.
-- `claude_chat_impl`: Concrete Anthropic client and OAuth helpers.
-- `claude_chat_service`: FastAPI deployment exposing `/auth/*` and `/chat`.
+- `ai_chat_api`: Abstract interface + dataclass message model.
+- `claude_chat_impl`: Concrete Anthropic client that registers itself with the API contract.
+- `ai_chat_service`: FastAPI deployment exposing `/auth/*` and `/chat`, plus the OAuth helpers.
 
 ### Environment Variables
 
 Place the following in `.env` (the settings loader walks parent directories to find it):
 
 ```env
-CLAUDE_API_KEY=sk-ant-...
-OAUTH_CLIENT_ID=your-google-client-id
-OAUTH_CLIENT_SECRET=your-google-client-secret
-SESSION_SECRET_KEY=long-random-string
-OAUTH_TOKEN_URL=https://oauth2.googleapis.com/token      # use the modern endpoint
-OAUTH_REDIRECT_URI=http://127.0.0.1:8000/auth/callback   # must match Google config
+ANTHROPIC_API_KEY=sk-ant-...                               # used by claude_chat_impl
+OAUTH_CLIENT_ID=your-google-client-id                      # used by ai_chat_service
+OAUTH_CLIENT_SECRET=your-google-client-secret              # used by ai_chat_service
+SESSION_SECRET_KEY=long-random-string                      # used by ai_chat_service
+OAUTH_TOKEN_URL=https://oauth2.googleapis.com/token        # optional override for ai_chat_service
+OAUTH_REDIRECT_URI=http://127.0.0.1:8000/auth/callback     # must match Google config (ai_chat_service)
 ```
 
 > **Tip:** Google’s redirect URIs must be registered in the Cloud Console. The service expects to run locally on port `8000`.
@@ -153,7 +153,7 @@ OAUTH_REDIRECT_URI=http://127.0.0.1:8000/auth/callback   # must match Google con
 ### Running the Service
 
 ```bash
-uvicorn claude_chat_service.main:app --reload
+uvicorn ai_chat_service.main:app --reload
 ```
 
 Available routes:
@@ -161,6 +161,7 @@ Available routes:
 - `GET /` → redirects to the interactive Swagger UI
 - `GET /health` → simple 200 OK
 - `GET /auth/login` → redirects to Google OAuth consent screen
+- `GET /auth/logout` → clears the session cookie and redirects back to `/docs`
 - `GET /auth/callback` → exchanges the `code`, sets a `session_token` cookie, and redirects to `/docs`
 - `POST /chat` → requires the session cookie, forwards the prompt to Claude, returns an assistant `Message`
 
@@ -169,12 +170,12 @@ The implementation is stateless; each request sends a single prompt with no hist
 ### Testing
 
 ```bash
-uv run pytest src/claude_chat_api/tests -q
+uv run pytest src/ai_chat_api/tests -q
 uv run pytest src/claude_chat_impl/tests -q
-uv run pytest src/claude_chat_service/tests -q
+uv run pytest src/ai_chat_service/tests -q
 ```
 
-The suite covers the abstract contract, OAuth flow (AuthManager), settings loader, and FastAPI routes. Coverage is enforced at 85%.
+The suite covers the abstract contract, OAuth flow (now hosted in `ai_chat_service`), settings loaders, and FastAPI routes. Coverage is enforced at 85%.
 
 ---
 

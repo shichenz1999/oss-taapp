@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 import pytest
 
-from claude_chat_impl.auth_manager import AuthManager
+from ai_chat_service.auth_manager import AuthManager
 
 
 def _stub_settings() -> SimpleNamespace:
@@ -22,7 +22,7 @@ def _stub_settings() -> SimpleNamespace:
 
 def test_get_authorization_url_builds_expected_query(mocker) -> None:
     """The authorization URL must include the required OAuth parameters."""
-    mocker.patch("claude_chat_impl.auth_manager.settings", _stub_settings())
+    mocker.patch("ai_chat_service.auth_manager.settings", _stub_settings())
 
     manager = AuthManager()
     url = manager.get_authorization_url()
@@ -42,14 +42,14 @@ def test_get_authorization_url_builds_expected_query(mocker) -> None:
 def test_exchange_code_for_tokens_success(mocker) -> None:
     """Successful code exchange returns the JSON payload from the token endpoint."""
     fake_settings = _stub_settings()
-    mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
+    mocker.patch("ai_chat_service.auth_manager.settings", fake_settings)
 
     mock_response = mocker.MagicMock()
     mock_response.json.return_value = {"access_token": "token-abc"}
 
     mock_client = mocker.MagicMock()
     mock_client.post.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
+    mocker.patch("ai_chat_service.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     tokens = manager.exchange_code_for_tokens("auth-code")
@@ -71,7 +71,7 @@ def test_exchange_code_for_tokens_success(mocker) -> None:
 def test_exchange_code_for_tokens_propagates_http_error(mocker) -> None:
     """HTTP errors from the token endpoint are surfaced to the caller."""
     fake_settings = _stub_settings()
-    mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
+    mocker.patch("ai_chat_service.auth_manager.settings", fake_settings)
 
     request = httpx.Request("POST", fake_settings.OAUTH_TOKEN_URL)
     response = httpx.Response(400, request=request, text="bad request")
@@ -81,7 +81,7 @@ def test_exchange_code_for_tokens_propagates_http_error(mocker) -> None:
     mock_response.raise_for_status.side_effect = http_error
     mock_client = mocker.MagicMock()
     mock_client.post.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
+    mocker.patch("ai_chat_service.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     with pytest.raises(httpx.HTTPStatusError):
@@ -91,13 +91,13 @@ def test_exchange_code_for_tokens_propagates_http_error(mocker) -> None:
 def test_get_user_info_returns_profile_payload(mocker) -> None:
     """The user info request forwards the bearer token and returns the JSON response."""
     fake_settings = _stub_settings()
-    mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
+    mocker.patch("ai_chat_service.auth_manager.settings", fake_settings)
 
     mock_response = mocker.MagicMock()
     mock_response.json.return_value = {"email": "user@example.com"}
     mock_client = mocker.MagicMock()
     mock_client.get.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
+    mocker.patch("ai_chat_service.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     profile = manager.get_user_info("token-abc")
@@ -113,7 +113,7 @@ def test_get_user_info_returns_profile_payload(mocker) -> None:
 def test_get_user_info_propagates_http_error(mocker) -> None:
     """Errors from the userinfo endpoint bubble up for the caller to handle."""
     fake_settings = _stub_settings()
-    mocker.patch("claude_chat_impl.auth_manager.settings", fake_settings)
+    mocker.patch("ai_chat_service.auth_manager.settings", fake_settings)
 
     request = httpx.Request("GET", fake_settings.OAUTH_USERINFO_URL)
     response = httpx.Response(500, request=request, text="server error")
@@ -123,7 +123,7 @@ def test_get_user_info_propagates_http_error(mocker) -> None:
     mock_response.raise_for_status.side_effect = http_error
     mock_client = mocker.MagicMock()
     mock_client.get.return_value = mock_response
-    mocker.patch("claude_chat_impl.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
+    mocker.patch("ai_chat_service.auth_manager.httpx.Client").return_value.__enter__.return_value = mock_client
 
     manager = AuthManager()
     with pytest.raises(httpx.HTTPStatusError):
