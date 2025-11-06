@@ -25,6 +25,7 @@ claude_chat_impl/
 └── tests/
     ├── conftest.py                          # Shared fixtures for patched SDK calls
     ├── test_claude_impl.py                  # Validates client behaviour and factory wiring
+    ├── test_message_impl.py                 # Tests message translation helpers + factory registration
     └── test_settings.py                     # Ensures settings load from environment safely
 ```
 
@@ -34,6 +35,8 @@ claude_chat_impl/
   targeting the `claude-3-haiku-20240307` model with sensible defaults.
 - `message_impl.py` – Contains `ClaudeMessage` and translation helpers to map
   Anthropic SDK responses into the workspace message abstraction.
+- `src/claude_chat_impl/tests/test_message_impl.py` – Ensures the translation
+  helpers and factory registration behave as expected without touching the SDK.
 - `settings.py` – Centralised environment configuration powered by
   `pydantic-settings`. Reads values from `.env` or the process at runtime.
 
@@ -63,4 +66,4 @@ uv run pytest src/claude_chat_impl/tests -q
 ```
 
 The suite patches Anthropic interactions to keep runs fast and deterministic
-while covering the registration and settings logic.
+while covering the registration, message conversion, and settings logic.

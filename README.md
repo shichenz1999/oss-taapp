@@ -175,7 +175,7 @@ uv run pytest src/claude_chat_impl/tests -q
 uv run pytest src/ai_chat_service/tests -q
 ```
 
-The suite covers the abstract contract, OAuth flow (now hosted in `ai_chat_service`), settings loaders, and FastAPI routes. Coverage is enforced at 85%.
+The suite covers the abstract contract, OAuth flow (now hosted in `ai_chat_service`), JWT/session helpers, message translation, and FastAPI routes. Coverage is enforced at 85%.
 
 ---
 
