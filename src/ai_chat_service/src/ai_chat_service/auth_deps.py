@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Request, status
 from jose import JWTError, jwt
 
-from claude_chat_impl.settings import settings
+from .settings import settings
 
 
 def get_current_user_id(request: Request) -> str:

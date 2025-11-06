@@ -1,12 +1,14 @@
 """Integration-style tests for the FastAPI AI chat service."""
 
 from collections.abc import Iterator
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 from ai_chat_api import Message, get_client
+from ai_chat_service.auth_deps import create_session_token
 from ai_chat_service.main import app, auth_manager, get_current_user_id
 
 
@@ -21,6 +23,13 @@ def test_health_endpoint_returns_ok(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_landing_redirects_to_docs(client: TestClient) -> None:
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 308
+    assert response.headers["location"] == "/docs"
 
 
 def test_login_redirects_to_oauth_provider(client: TestClient, mocker: MockerFixture) -> None:
@@ -48,9 +57,72 @@ def test_auth_callback_sets_cookie_and_redirects(
     assert response.cookies.get("session_token") == "session-123"
 
 
+def test_auth_callback_with_error_returns_400(client: TestClient) -> None:
+    response = client.get("/auth/callback?error=access_denied", follow_redirects=False)
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "OAuth Error: access_denied"}
+
+
+def test_auth_callback_missing_code_returns_400(client: TestClient) -> None:
+    response = client.get("/auth/callback", follow_redirects=False)
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Missing 'code' query parameter"}
+
+
+def test_auth_callback_missing_access_token_returns_500(client: TestClient, mocker: MockerFixture) -> None:
+    mocker.patch.object(auth_manager, "exchange_code_for_tokens", return_value={})
+
+    response = client.get("/auth/callback?code=xyz", follow_redirects=False)
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Could not retrieve access token"}
+
+
+def test_auth_callback_missing_user_identifier_returns_500(client: TestClient, mocker: MockerFixture) -> None:
+    mocker.patch.object(auth_manager, "exchange_code_for_tokens", return_value={"access_token": "token-abc"})
+    mocker.patch.object(auth_manager, "get_user_info", return_value={})
+
+    response = client.get("/auth/callback?code=xyz", follow_redirects=False)
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Could not retrieve user identifier"}
+
+
+def test_logout_clears_session_cookie(client: TestClient) -> None:
+    response = client.get("/auth/logout", follow_redirects=False)
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "/docs"
+    set_cookie_header = response.headers.get("set-cookie", "")
+    assert "session_token=" in set_cookie_header
+    assert "Max-Age=0" in set_cookie_header
+
+
 def test_chat_endpoint_requires_authentication(client: TestClient) -> None:
     response = client.post("/chat", json={"prompt": "Hello"})
     assert response.status_code == 401
+
+
+def test_chat_endpoint_with_valid_token(client: TestClient, mocker: MockerFixture) -> None:
+    mocker.patch(
+        "claude_chat_impl.claude_impl.claude_client.messages.create",
+        return_value=SimpleNamespace(
+            role="assistant",
+            content=[SimpleNamespace(text="Patched reply")],
+        ),
+    )
+    token = create_session_token("user@example.com")
+
+    client.cookies.set("session_token", token)
+    try:
+        response = client.post("/chat", json={"prompt": "Hi"})
+    finally:
+        client.cookies.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"role": "assistant", "content": "Patched reply"}
 
 
 def test_chat_endpoint_returns_ai_message(
@@ -58,6 +130,13 @@ def test_chat_endpoint_returns_ai_message(
     mocker: MockerFixture,
 ) -> None:
     app.dependency_overrides[get_current_user_id] = lambda: "user@example.com"
+    mocker.patch(
+        "claude_chat_impl.claude_impl.claude_client.messages.create",
+        return_value=SimpleNamespace(
+            role="assistant",
+            content=[SimpleNamespace(text="Mocked reply")],
+        ),
+    )
 
     class _DummyClient:
         def send_message(self, prompt: str, user_id: str) -> Message:

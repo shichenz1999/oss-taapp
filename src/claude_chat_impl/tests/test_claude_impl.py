@@ -16,6 +16,7 @@ def test_send_message_success(mocker):
     mock_content = MagicMock()
     mock_content.text = "This is a mock AI reply."
     mock_response.content = [mock_content]
+    mock_response.role = "assistant"
     mock_client.messages.create.return_value = mock_response
 
     # This replaces the 'claude_client' in that file with our mock

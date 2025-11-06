@@ -72,12 +72,19 @@ class ServiceClaudeChat(Client):
             client: Optionally provide a preconfigured generated Client instance.
 
         """
-        if GeneratedClient is None:
-            raise RuntimeError("Generated client not found. Generate it first from docs/ai_chat_service_openapi.json.")
+        if client is not None:
+            self._client = client
+        else:
+            if GeneratedClient is None:
+                raise RuntimeError("Generated client not found. Generate it first from docs/ai_chat_service_openapi.json.")
+            self._client = GeneratedClient(base_url=base_url)  # type: ignore[call-arg]
 
-        self._client = client or GeneratedClient(base_url=base_url)  # type: ignore[call-arg]
-        # Ensure our session cookie is set for protected endpoint access
-        self._client = self._client.with_cookies({"session_token": session_token})
+        # Ensure our session cookie is set for protected endpoint access when supported
+        if hasattr(self._client, "with_cookies"):
+            self._client = self._client.with_cookies({"session_token": session_token})
+        else:  # pragma: no cover - defensive fallback for custom clients without helper
+            if hasattr(self._client, "cookies"):
+                self._client.cookies.update({"session_token": session_token})
 
     def send_message(self, prompt: str, user_id: str) -> Message:  # noqa: ARG002 - user_id used by impl contract
         """Send a prompt to the service and return the assistant's reply.

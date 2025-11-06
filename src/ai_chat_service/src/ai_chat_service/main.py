@@ -5,7 +5,8 @@ from pydantic import BaseModel
 # Importing claude_chat_impl triggers registration of the concrete implementation.
 import claude_chat_impl  # noqa: F401
 from ai_chat_api import Client, get_client
-from claude_chat_impl import AuthManager
+
+from .auth_manager import AuthManager
 
 from .auth_deps import create_session_token, get_current_user_id
 
@@ -36,6 +37,13 @@ async def health_check() -> dict[str, str]:
 @app.get("/auth/login", tags=["Authentication"])
 async def login() -> RedirectResponse:
     return RedirectResponse(auth_manager.get_authorization_url(), status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
+@app.get("/auth/logout", tags=["Authentication"])
+async def logout() -> RedirectResponse:
+    response = RedirectResponse(url="/docs", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    response.delete_cookie(key="session_token", httponly=True, secure=False, samesite="lax")
+    return response
 
 
 @app.get("/auth/callback", tags=["Authentication"])

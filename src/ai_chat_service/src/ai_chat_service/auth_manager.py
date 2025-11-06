@@ -1,10 +1,11 @@
-# claude_chat_impl/src/claude_chat_impl/auth_manager.py
+# ai_chat_service/src/ai_chat_service/auth_manager.py
+
+"""OAuth 2.0 helpers for the AI chat FastAPI service."""
 
 from typing import Any
 
 import httpx
 
-# Import our centralized settings
 from .settings import settings
 
 
