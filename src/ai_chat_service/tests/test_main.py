@@ -1,4 +1,4 @@
-"""Integration-style tests for the FastAPI Claude chat service."""
+"""Integration-style tests for the FastAPI AI chat service."""
 
 from collections.abc import Iterator
 
@@ -6,9 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from claude_chat_api import Message, MessageRole
-from claude_chat_service import main
-from claude_chat_service.main import app, get_current_user_id
+from ai_chat_api import Message, get_client
+from ai_chat_service.main import app, auth_manager, get_current_user_id
 
 
 @pytest.fixture
@@ -25,11 +24,7 @@ def test_health_endpoint_returns_ok(client: TestClient) -> None:
 
 
 def test_login_redirects_to_oauth_provider(client: TestClient, mocker: MockerFixture) -> None:
-    mocker.patch.object(
-        main.auth_mgr,
-        "get_authorization_url",
-        return_value="https://accounts.example.com/auth",
-    )
+    mocker.patch.object(auth_manager, "get_authorization_url", return_value="https://accounts.example.com/auth")
 
     response = client.get("/auth/login", follow_redirects=False)
 
@@ -41,17 +36,9 @@ def test_auth_callback_sets_cookie_and_redirects(
     client: TestClient,
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch.object(
-        main.auth_mgr,
-        "exchange_code_for_tokens",
-        return_value={"access_token": "token-abc"},
-    )
-    mocker.patch.object(
-        main.auth_mgr,
-        "get_user_info",
-        return_value={"email": "user@example.com"},
-    )
-    mocker.patch("claude_chat_service.main.create_session_token", return_value="session-123")
+    mocker.patch.object(auth_manager, "exchange_code_for_tokens", return_value={"access_token": "token-abc"})
+    mocker.patch.object(auth_manager, "get_user_info", return_value={"email": "user@example.com"})
+    mocker.patch("ai_chat_service.main.create_session_token", return_value="session-123")
 
     response = client.get("/auth/callback?code=test-code", follow_redirects=False)
 
@@ -71,11 +58,12 @@ def test_chat_endpoint_returns_ai_message(
     mocker: MockerFixture,
 ) -> None:
     app.dependency_overrides[get_current_user_id] = lambda: "user@example.com"
-    mocker.patch.object(
-        main.impl,
-        "send_message",
-        return_value=Message(role=MessageRole.ASSISTANT, content="Mocked reply"),
-    )
+
+    class _DummyClient:
+        def send_message(self, prompt: str, user_id: str) -> Message:
+            return DummyMessage(role="assistant", content="Mocked reply")
+
+    app.dependency_overrides[get_client] = lambda: _DummyClient()
 
     try:
         response = client.post("/chat", json={"prompt": "Hi Claude"})
@@ -84,3 +72,16 @@ def test_chat_endpoint_returns_ai_message(
 
     assert response.status_code == 200
     assert response.json() == {"role": "assistant", "content": "Mocked reply"}
+
+class DummyMessage(Message):
+    def __init__(self, role: str, content: str) -> None:
+        self._role = role
+        self._content = content
+
+    @property
+    def role(self) -> str:
+        return self._role
+
+    @property
+    def content(self) -> str:
+        return self._content

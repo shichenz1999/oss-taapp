@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from claude_chat_api import Message, MessageRole
+from ai_chat_api import Message
 
 
 class _DummyHttpxResp:
@@ -37,7 +37,7 @@ def test_adapter_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     result = adapter.send_message(prompt="hello", user_id="user@example.com")
 
     assert isinstance(result, Message)
-    assert result.role == MessageRole.ASSISTANT
+    assert result.role == "assistant"
     assert result.content == "hi"
 
 

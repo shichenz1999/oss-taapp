@@ -24,9 +24,9 @@ oss-taapp/
 │   ├── gmail_client_impl/        # HW1 Gmail implementation
 │   ├── mail_client_service/      # HW1 FastAPI service for mail
 │   ├── mail_client_adapter/      # HW1 adapter for generated client
-│   ├── claude_chat_api/          # HW2 abstract contract
+│   ├── ai_chat_api/              # HW2 abstract contract
 │   ├── claude_chat_impl/         # HW2 Claude + OAuth implementation
-│   └── claude_chat_service/      # HW2 FastAPI deployment
+│   └── ai_chat_service/          # HW2 FastAPI deployment
 ├── tests/                        # Cross-component tests
 ├── README.md
 ├── pyproject.toml                # Workspace + tooling config
@@ -131,16 +131,16 @@ Pytest markers such as `integration`, `e2e`, and `local_credentials` let you tar
 ### Goal
 Deliver a minimal Claude-powered chat microservice with OAuth-protected access. Core packages:
 
-- `claude_chat_api`: Abstract interface + Pydantic message model.
+- `ai_chat_api`: Abstract interface + dataclass message model.
 - `claude_chat_impl`: Concrete Anthropic client and OAuth helpers.
-- `claude_chat_service`: FastAPI deployment exposing `/auth/*` and `/chat`.
+- `ai_chat_service`: FastAPI deployment exposing `/auth/*` and `/chat`.
 
 ### Environment Variables
 
 Place the following in `.env` (the settings loader walks parent directories to find it):
 
 ```env
-CLAUDE_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=sk-ant-...
 OAUTH_CLIENT_ID=your-google-client-id
 OAUTH_CLIENT_SECRET=your-google-client-secret
 SESSION_SECRET_KEY=long-random-string
@@ -153,7 +153,7 @@ OAUTH_REDIRECT_URI=http://127.0.0.1:8000/auth/callback   # must match Google con
 ### Running the Service
 
 ```bash
-uvicorn claude_chat_service.main:app --reload
+uvicorn ai_chat_service.main:app --reload
 ```
 
 Available routes:
@@ -169,9 +169,9 @@ The implementation is stateless; each request sends a single prompt with no hist
 ### Testing
 
 ```bash
-uv run pytest src/claude_chat_api/tests -q
+uv run pytest src/ai_chat_api/tests -q
 uv run pytest src/claude_chat_impl/tests -q
-uv run pytest src/claude_chat_service/tests -q
+uv run pytest src/ai_chat_service/tests -q
 ```
 
 The suite covers the abstract contract, OAuth flow (AuthManager), settings loader, and FastAPI routes. Coverage is enforced at 85%.

@@ -1,13 +1,13 @@
 [project]
-name = "claude-chat-service"
+name = "ai-chat-service"
 version = "0.1.0"
-description = "FastAPI deployment unit for the Claude chat service."
+description = "FastAPI deployment unit for the AI chat service."
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
     "python-jose[cryptography]>=3.3.0",
-    "claude-chat-api",
+    "ai-chat-api",
     "claude-chat-impl",
 ]
 
@@ -18,7 +18,7 @@ test = [
 ]
 
 [tool.uv.sources]
-claude-chat-api = { workspace = true }
+ai-chat-api = { workspace = true }
 claude-chat-impl = { workspace = true }
 
 [build-system]

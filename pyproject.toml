@@ -32,9 +32,9 @@ members = [
   "src/gmail_client_impl",
   "src/mail_client_service",
   "src/mail_client_adapter",
-  "src/claude_chat_api",
+  "src/ai_chat_api",
   "src/claude_chat_impl",
-  "src/claude_chat_service",
+  "src/ai_chat_service",
 ]
 
 [tool.ruff]
@@ -79,10 +79,9 @@ mypy_path = [
     "src/mail_client_service/src",
     "src/mail_client_adapter/src",
     "src/claude_chat_impl/src",
-    "src/claude_chat_service/src",
+    "src/ai_chat_service/src",
     "src/mail_client_service_client",
     "src/claude_chat_adapter/src",
-    "src/claude_chat_service_client",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false
@@ -121,11 +120,10 @@ pythonpath = [
     "src/mail_client_service/src",
     "src/gmail_client_impl/src",
     "src/mail_client_api/src",
-    "src/claude_chat_api/src",
+    "src/ai_chat_api/src",
     "src/claude_chat_impl/src",
     "src/claude_chat_adapter/src",
-    "src/claude_chat_service_client",
-    "src/claude_chat_service/src",
+    "src/ai_chat_service/src",
 ]
 testpaths = ["tests", "src/*/tests"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]

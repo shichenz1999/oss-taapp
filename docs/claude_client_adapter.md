@@ -1,19 +1,19 @@
 # Claude Chat Client (OpenAPI-generated SDK + Adapter)
 
-This guide shows how to generate a type-safe HTTP client from the `claude_chat_service` OpenAPI spec using `openapi-python-client`, and how to wrap it with an adapter that implements the original `AbstractClaudeChatAPI` so callers don't need to deal with HTTP details.
+This guide shows how to generate a type-safe HTTP client from the `ai_chat_service` OpenAPI spec using `openapi-python-client`, and how to wrap it with an adapter that implements the original `ai_chat_api.Client` so callers don't need to deal with HTTP details.
 
 ## Overview
 
 - Auto-generated client: Create a lightweight, type-safe SDK from the service's OpenAPI spec (similar to `src/mail_client_service_client`).
-- Service client adapter: In `claude_chat_adapter`, provide `ServiceClaudeChat` implementing `AbstractClaudeChatAPI` and delegating to the generated SDK.
+- Service client adapter: In `claude_chat_adapter`, provide `ServiceClaudeChat` implementing `ai_chat_api.Client` and delegating to the generated SDK.
 
 ## Step 1: Export the service OpenAPI spec
 
-We provide `scripts/export_claude_openapi.py`. Running it writes `docs/claude_chat_service_openapi.json`.
+We provide `scripts/export_ai_openapi.py`. Running it writes `docs/ai_chat_service_openapi.json`.
 
 ```powershell
 # Recommended: use uv (dev dependencies are already configured)
-uv run python -m scripts.export_claude_openapi
+uv run python -m scripts.export_ai_openapi
 ```
 
 If you don't use uv, set up a Python venv and install FastAPI + workspace packages (see the root `pyproject.toml`).
@@ -24,7 +24,7 @@ Use `openapi-python-client` to generate the client package at `src/claude_chat_s
 
 ```powershell
 uv run openapi-python-client generate `
-  --path .\docs\claude_chat_service_openapi.json `
+  --path .\docs\ai_chat_service_openapi.json `
   --output-path .\src\claude_chat_service_client `
   --overwrite
 ```
@@ -48,7 +48,7 @@ src/claude_chat_service_client/
 
 We added `src/claude_chat_adapter` with the core class:
 
-- `claude_chat_adapter.ServiceClaudeChat`: implements `claude_chat_api.AbstractClaudeChatAPI`.
+- `claude_chat_adapter.ServiceClaudeChat`: implements `ai_chat_api.Client`.
 - Constructor parameters:
   - `base_url`: service address (e.g., `http://localhost:8000`)
   - `session_token`: JWT cookie obtained after the service OAuth flow. The adapter sets it as a cookie for authenticated calls.
@@ -78,4 +78,4 @@ Note: `user_id` is part of the abstract contract; the service identifies the use
 ## References
 
 - Mail service example: `src/mail_client_service_client` (auto-generated) + `src/mail_client_adapter` (adapter).
-- Original interface: `src/claude_chat_api/src/claude_chat_api/api.py` and models in `models.py`.
+- Original interface: `src/ai_chat_api/src/ai_chat_api/client.py` and models in `message.py`.
