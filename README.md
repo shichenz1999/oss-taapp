@@ -208,3 +208,33 @@ For deeper explanations of each component and the testing philosophy, see:
 ---
 
 Happy hacking! Each homework builds on the same tooling, so once the workspace is synced you can switch between HW1 and HW2 without reconfiguring your environment. Keep credentials secure, reuse the provided test markers, and lean on the docs to understand each component’s responsibilities.
+
+## Deployment
+
+the ai chat service is deployed using Render. 
+
+link: https://oss-taapp-aen3.onrender.com
+
+**how to use**
+
+1. login my google account: access https://oss-taapp-aen3.onrender.com/auth/login 
+
+   after authenticating the page will redirect back to Swagger UI
+
+2. execute chat interface in Swagger UI to chat with claude.
+
+**interfaces**
+
+'/docs': interactive Swagger UI
+
+'/health': health check
+
+'/auth/login': google authentication and login
+
+'/auth/logout': logout
+
+'/auth/callback': authentication callback
+
+'/chat': chat interface
+
+'/openapi.json': base URL that openapi-python-client generator can consume
