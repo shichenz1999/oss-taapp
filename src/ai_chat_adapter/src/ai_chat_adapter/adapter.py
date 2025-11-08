@@ -5,7 +5,7 @@ from __future__ import annotations
 from http import HTTPStatus
 from typing import Union
 
-from ai_chat_api import get_message as get_abstract_message
+import ai_chat_api
 from ai_chat_api.client import Client as AbstractClient
 from ai_chat_api.message import Message as AbstractMessage
 from ai_chat_service_api_client.fast_api_client.api.chat import send_chat_message_chat_post
@@ -54,4 +54,4 @@ class AiChatServiceAdapter(AbstractClient):
         if not isinstance(parsed, ServiceChatResponse):
             raise RuntimeError(f"Unexpected chat response type: {type(parsed)}")
 
-        return get_abstract_message(role=parsed.role, content=parsed.content)
+        return ai_chat_api.get_message(role=parsed.role, content=parsed.content)
