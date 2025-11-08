@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -8,6 +8,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "ai-chat-adapter",
     "ai-chat-api",
     "ai-chat-service",
     "claude-chat-impl",
@@ -17,6 +18,28 @@ members = [
     "mail-client-service",
     "ta-assignment",
 ]
+
+[[package]]
+name = "ai-chat-adapter"
+version = "0.1.0"
+source = { editable = "src/ai_chat_adapter" }
+dependencies = [
+    { name = "ai-chat-api" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "pytest" },
+    { name = "pytest-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ai-chat-api", editable = "src/ai_chat_api" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
+    { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.12.0" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "ai-chat-api"

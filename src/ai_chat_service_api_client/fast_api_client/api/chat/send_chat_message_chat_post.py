@@ -5,47 +5,37 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.chat_request import ChatRequest
+from ...models.chat_response import ChatResponse
 from ...models.http_validation_error import HTTPValidationError
-from ...types import UNSET, Response, Unset
+from ...types import Response
 
 
 def _get_kwargs(
     *,
-    code: Union[None, Unset, str] = UNSET,
-    error: Union[None, Unset, str] = UNSET,
+    body: ChatRequest,
 ) -> dict[str, Any]:
-    params: dict[str, Any] = {}
-
-    json_code: Union[None, Unset, str]
-    if isinstance(code, Unset):
-        json_code = UNSET
-    else:
-        json_code = code
-    params["code"] = json_code
-
-    json_error: Union[None, Unset, str]
-    if isinstance(error, Unset):
-        json_error = UNSET
-    else:
-        json_error = error
-    params["error"] = json_error
-
-    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
+    headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
-        "method": "get",
-        "url": "/auth/callback",
-        "params": params,
+        "method": "post",
+        "url": "/chat",
     }
 
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, HTTPValidationError]]:
+) -> Optional[Union[ChatResponse, HTTPValidationError]]:
     if response.status_code == 200:
-        response_200 = response.json()
+        response_200 = ChatResponse.from_dict(response.json())
+
         return response_200
 
     if response.status_code == 422:
@@ -61,7 +51,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, HTTPValidationError]]:
+) -> Response[Union[ChatResponse, HTTPValidationError]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,29 +63,23 @@ def _build_response(
 def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    code: Union[None, Unset, str] = UNSET,
-    error: Union[None, Unset, str] = UNSET,
-) -> Response[Union[Any, HTTPValidationError]]:
-    """Auth Callback
-
-     (Improved) Step 2 of OAuth 2.0.
-    Handles the callback, checking for 'error' OR 'code'.
+    body: ChatRequest,
+) -> Response[Union[ChatResponse, HTTPValidationError]]:
+    """Send Chat Message
 
     Args:
-        code (Union[None, Unset, str]):
-        error (Union[None, Unset, str]):
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, HTTPValidationError]]
+        Response[Union[ChatResponse, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
-        code=code,
-        error=error,
+        body=body,
     )
 
     response = client.get_httpx_client().request(
@@ -108,59 +92,47 @@ def sync_detailed(
 def sync(
     *,
     client: Union[AuthenticatedClient, Client],
-    code: Union[None, Unset, str] = UNSET,
-    error: Union[None, Unset, str] = UNSET,
-) -> Optional[Union[Any, HTTPValidationError]]:
-    """Auth Callback
-
-     (Improved) Step 2 of OAuth 2.0.
-    Handles the callback, checking for 'error' OR 'code'.
+    body: ChatRequest,
+) -> Optional[Union[ChatResponse, HTTPValidationError]]:
+    """Send Chat Message
 
     Args:
-        code (Union[None, Unset, str]):
-        error (Union[None, Unset, str]):
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, HTTPValidationError]
+        Union[ChatResponse, HTTPValidationError]
     """
 
     return sync_detailed(
         client=client,
-        code=code,
-        error=error,
+        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    code: Union[None, Unset, str] = UNSET,
-    error: Union[None, Unset, str] = UNSET,
-) -> Response[Union[Any, HTTPValidationError]]:
-    """Auth Callback
-
-     (Improved) Step 2 of OAuth 2.0.
-    Handles the callback, checking for 'error' OR 'code'.
+    body: ChatRequest,
+) -> Response[Union[ChatResponse, HTTPValidationError]]:
+    """Send Chat Message
 
     Args:
-        code (Union[None, Unset, str]):
-        error (Union[None, Unset, str]):
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, HTTPValidationError]]
+        Response[Union[ChatResponse, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
-        code=code,
-        error=error,
+        body=body,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -171,30 +143,24 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
-    code: Union[None, Unset, str] = UNSET,
-    error: Union[None, Unset, str] = UNSET,
-) -> Optional[Union[Any, HTTPValidationError]]:
-    """Auth Callback
-
-     (Improved) Step 2 of OAuth 2.0.
-    Handles the callback, checking for 'error' OR 'code'.
+    body: ChatRequest,
+) -> Optional[Union[ChatResponse, HTTPValidationError]]:
+    """Send Chat Message
 
     Args:
-        code (Union[None, Unset, str]):
-        error (Union[None, Unset, str]):
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, HTTPValidationError]
+        Union[ChatResponse, HTTPValidationError]
     """
 
     return (
         await asyncio_detailed(
             client=client,
-            code=code,
-            error=error,
+            body=body,
         )
     ).parsed

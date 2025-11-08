@@ -33,6 +33,7 @@ members = [
   "src/mail_client_service",
   "src/mail_client_adapter",
   "src/ai_chat_api",
+  "src/ai_chat_adapter",
   "src/claude_chat_impl",
   "src/ai_chat_service",
 ]

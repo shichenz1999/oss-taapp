@@ -4,28 +4,23 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.message_role import MessageRole
-
-T = TypeVar("T", bound="Message")
+T = TypeVar("T", bound="ChatResponse")
 
 
 @_attrs_define
-class Message:
-    """A single chat message. This is the fundamental data model
-    for our API.
-
-        Attributes:
-            role (MessageRole): Defines the role of the entity creating a message.
-                'user' is for the end-user, 'assistant' is for the AI.
-            content (str):
+class ChatResponse:
+    """
+    Attributes:
+        role (str):
+        content (str):
     """
 
-    role: MessageRole
+    role: str
     content: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        role = self.role.value
+        role = self.role
 
         content = self.content
 
@@ -43,17 +38,17 @@ class Message:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        role = MessageRole(d.pop("role"))
+        role = d.pop("role")
 
         content = d.pop("content")
 
-        message = cls(
+        chat_response = cls(
             role=role,
             content=content,
         )
 
-        message.additional_properties = d
-        return message
+        chat_response.additional_properties = d
+        return chat_response
 
     @property
     def additional_keys(self) -> list[str]:
