@@ -1,5 +1,9 @@
+"""Authentication helpers for the AI chat service."""
+
+from typing import Any, cast
+
 from fastapi import HTTPException, Request, status
-from jose import JWTError, jwt
+from jose import JWTError, jwt  # type: ignore[import-untyped]
 
 from .settings import settings
 
@@ -15,7 +19,10 @@ def get_current_user_id(request: Request) -> str:
         )
 
     try:
-        payload = jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=[settings.SESSION_ALGORITHM])
+        payload = cast(
+            "dict[str, Any]",
+            jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=[settings.SESSION_ALGORITHM]),
+        )
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -24,7 +31,7 @@ def get_current_user_id(request: Request) -> str:
         ) from exc
 
     user_id = payload.get("sub")
-    if not user_id:
+    if not isinstance(user_id, str):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -36,4 +43,9 @@ def get_current_user_id(request: Request) -> str:
 
 def create_session_token(user_id: str) -> str:
     """Issue a signed JWT storing the given user ID."""
-    return jwt.encode({"sub": user_id}, settings.SESSION_SECRET_KEY, algorithm=settings.SESSION_ALGORITHM)
+    token: str = jwt.encode(
+        {"sub": user_id},
+        settings.SESSION_SECRET_KEY,
+        algorithm=settings.SESSION_ALGORITHM,
+    )
+    return token

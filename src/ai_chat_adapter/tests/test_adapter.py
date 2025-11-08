@@ -11,7 +11,6 @@ from ai_chat_service_api_client.fast_api_client.types import Response
 
 def test_send_message_success(monkeypatch) -> None:
     """Adapter should translate request/response and surface the abstract message."""
-
     mock_client = Mock(name="service_client")
     captured: dict[str, object] = {}
     service_response = ChatResponse(role="assistant", content="hello user")

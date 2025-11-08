@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 import pytest
 from fastapi import HTTPException, status
@@ -43,8 +46,9 @@ def test_get_current_user_id_handles_jwt_errors(monkeypatch: pytest.MonkeyPatch)
     token = "fake-token"
 
     request = _build_request(headers=[(b"cookie", f"session_token={token}".encode())])
-    def _raise(*args, **kwargs):
-        raise JWTError("bad token")
+    def _raise(*args: object, **kwargs: object) -> None:
+        error_message = "bad token"
+        raise JWTError(error_message)
 
     monkeypatch.setattr("ai_chat_service.auth_deps.jwt.decode", _raise)
 
@@ -58,7 +62,10 @@ def test_get_current_user_id_handles_jwt_errors(monkeypatch: pytest.MonkeyPatch)
 def test_get_current_user_id_requires_subject(monkeypatch: pytest.MonkeyPatch) -> None:
     token = "fake-token"
     request = _build_request(headers=[(b"cookie", f"session_token={token}".encode())])
-    monkeypatch.setattr("ai_chat_service.auth_deps.jwt.decode", lambda *args, **kwargs: {})
+    def _decode_mock(*_args: object, **_kwargs: object) -> dict[str, str]:
+        return {}
+
+    monkeypatch.setattr("ai_chat_service.auth_deps.jwt.decode", _decode_mock)
 
     with pytest.raises(HTTPException) as exc:
         get_current_user_id(request)

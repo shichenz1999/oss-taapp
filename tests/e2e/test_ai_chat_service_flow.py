@@ -41,7 +41,6 @@ def _build_sync_transport(asgi_app: ASGIApp) -> httpx.MockTransport:
 
 def test_ai_chat_stack_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
     """Register the adapter and call through ai_chat_api to hit the FastAPI service."""
-
     transport = _build_sync_transport(app)
     base_url = "http://testserver"
     claude_response = SimpleNamespace(

@@ -5,11 +5,13 @@ from __future__ import annotations
 from http import HTTPStatus
 from typing import Union
 
-import ai_chat_api
 from ai_chat_api.client import Client as AbstractClient
 from ai_chat_api.message import Message as AbstractMessage
+
+import ai_chat_api
 from ai_chat_service_api_client.fast_api_client.api.chat import send_chat_message_chat_post
-from ai_chat_service_api_client.fast_api_client.client import AuthenticatedClient, Client as ServiceClient
+from ai_chat_service_api_client.fast_api_client.client import AuthenticatedClient
+from ai_chat_service_api_client.fast_api_client.client import Client as ServiceClient
 from ai_chat_service_api_client.fast_api_client.models.chat_request import ChatRequest as ServiceChatRequest
 from ai_chat_service_api_client.fast_api_client.models.chat_response import ChatResponse as ServiceChatResponse
 from ai_chat_service_api_client.fast_api_client.models.http_validation_error import HTTPValidationError
@@ -36,7 +38,7 @@ class AiChatServiceAdapter(AbstractClient):
         return self._build_message_from_response(response)
 
     def _build_message_from_response(
-        self, response: Response[Union[ServiceChatResponse, HTTPValidationError]]
+        self, response: Response[ServiceChatResponse | HTTPValidationError]
     ) -> AbstractMessage:
         if response.status_code != HTTPStatus.OK:
             raise RuntimeError(
