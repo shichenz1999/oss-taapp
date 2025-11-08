@@ -22,4 +22,6 @@ packages = ["src/ai_chat_adapter"]
 
 [tool.uv.sources]
 ai-chat-api = { workspace = true }
-ai-chat-service-api-client = { workspace = true }
+
+[tool.hatch.metadata]
+allow-direct-references = true

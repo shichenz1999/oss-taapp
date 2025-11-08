@@ -50,14 +50,18 @@ def test_send_message_success(monkeypatch) -> None:
 def test_send_message_raises_on_http_error(monkeypatch) -> None:
     mock_client = Mock(name="service_client")
 
-    monkeypatch.setattr(
-        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
-        lambda *, client, body: Response(
+    def _http_error(*, client, body):
+        _ = (client, body)
+        return Response(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             content=b"boom",
             headers={},
             parsed=None,
-        ),
+        )
+
+    monkeypatch.setattr(
+        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
+        _http_error,
     )
 
     adapter = AiChatServiceAdapter(client=mock_client)
@@ -69,17 +73,21 @@ def test_send_message_raises_on_http_error(monkeypatch) -> None:
 def test_send_message_raises_on_validation_error(monkeypatch) -> None:
     mock_client = Mock(name="service_client")
 
-    monkeypatch.setattr(
-        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
-        lambda *, client, body: Response(
+    def _validation_error(*, client, body):
+        _ = (client, body)
+        return Response(
             status_code=HTTPStatus.OK,
             content=b"validation failed",
             headers={},
             parsed=HTTPValidationError(),
-        ),
+        )
+
+    monkeypatch.setattr(
+        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
+        _validation_error,
     )
 
     adapter = AiChatServiceAdapter(client=mock_client)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         adapter.send_message(prompt="hello world", user_id="user-123")

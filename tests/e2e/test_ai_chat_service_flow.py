@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import anyio
 import httpx
 import pytest
-from starlette.types import ASGIApp
+
+if TYPE_CHECKING:
+    from starlette.types import ASGIApp
 
 import ai_chat_adapter
 import ai_chat_api
