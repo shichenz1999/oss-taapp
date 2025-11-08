@@ -36,7 +36,7 @@ def test_send_message_success(monkeypatch) -> None:
         "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
         fake_sync_detailed,
     )
-    monkeypatch.setattr("ai_chat_adapter.adapter.get_abstract_message", fake_get_message)
+    monkeypatch.setattr("ai_chat_adapter.adapter.ai_chat_api.get_message", fake_get_message)
 
     adapter = AiChatServiceAdapter(client=mock_client)
     result = adapter.send_message(prompt="hello world", user_id="user-123")

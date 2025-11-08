@@ -9,6 +9,8 @@ import httpx
 import pytest
 from starlette.types import ASGIApp
 
+import ai_chat_api
+from claude_chat_impl.message_impl import get_message_impl
 from ai_chat_adapter.adapter import AiChatServiceAdapter
 from ai_chat_service.auth_deps import create_session_token
 from ai_chat_service.main import app
@@ -58,6 +60,7 @@ def test_ai_chat_adapter_round_trip_through_service(monkeypatch: pytest.MonkeyPa
         "claude_chat_impl.claude_impl.claude_client.messages.create",
         lambda *_, **__: claude_response,
     )
+    monkeypatch.setattr(ai_chat_api, "get_message", get_message_impl, raising=False)
 
     try:
         with httpx.Client(transport=transport, base_url=base_url) as http_client:
@@ -73,10 +76,12 @@ def test_ai_chat_adapter_round_trip_through_service(monkeypatch: pytest.MonkeyPa
         transport.close()
 
 
-def test_ai_chat_adapter_requires_session_token() -> None:
+def test_ai_chat_adapter_requires_session_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Requests without a session token should surface the FastAPI 401 response."""
     transport = _build_sync_transport(app)
     base_url = "http://testserver"
+
+    monkeypatch.setattr(ai_chat_api, "get_message", get_message_impl, raising=False)
 
     try:
         with httpx.Client(transport=transport, base_url=base_url) as http_client:
