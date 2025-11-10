@@ -1,3 +1,4 @@
+# ruff: noqa: INP001
 """Shared fixtures for ai_chat_service tests."""
 
 import os

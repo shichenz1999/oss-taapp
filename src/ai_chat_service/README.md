@@ -25,8 +25,9 @@ ai_chat_service/
 │   ├── settings.py                          # Service-specific configuration (OAuth + session secrets)
 │   └── main.py                              # FastAPI application, routes, and dependency wiring
 └── tests/
+    ├── test_auth_deps.py                    # Unit tests for JWT helpers
     ├── test_auth_manager.py                 # Unit tests for OAuth helper logic
-    └── test_main.py                         # Integration-style tests for auth and chat flows
+    └── test_main.py                         # Integration-style tests for routing + dependency overrides
 ```
 
 - `src/ai_chat_service/auth_manager.py` – Wraps the OAuth authorization code flow
@@ -34,6 +35,8 @@ ai_chat_service/
 - `src/ai_chat_service/auth_deps.py` – Handles JWT creation and validation by
   reading secrets from `ai_chat_service.settings`. Exposed as FastAPI
   dependencies (`get_current_user_id`, `create_session_token`).
+- `src/ai_chat_service/tests/test_auth_deps.py` – Covers success/failure paths
+  for the session dependency to keep cookie/JWT logic well defined.
 - `src/ai_chat_service/settings.py` – Loads OAuth client credentials and session
   signing configuration from environment variables.
 - `src/ai_chat_service/main.py` – Instantiates `FastAPI`, wires the OAuth
@@ -41,7 +44,7 @@ ai_chat_service/
   `ai_chat_api.get_client`.
 - `src/ai_chat_service/tests/test_main.py` – Exercises the health probe,
   OAuth redirect/callback behaviour, authentication requirements, and chat
-  responses with overridden dependencies.
+  responses with overridden dependencies and JWT round-trips.
 
 ## HTTP Routes
 - `GET /` – Permanently redirects to `/docs` for quick access to the Swagger UI.
@@ -88,8 +91,8 @@ Configure the following environment variables before launching:
 
 ## Testing
 ```bash
-uv run pytest src/ai_chat_service/tests/test_main.py
+uv run pytest src/ai_chat_service/tests -q
 ```
 
 Tests override FastAPI dependencies to simulate OAuth flows and chat responses,
-so they remain deterministic and offline-friendly.
+while the unit suites keep the OAuth helper and JWT dependency behaviour explicit.

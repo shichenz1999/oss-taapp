@@ -42,9 +42,6 @@ def sync_detailed(
 ) -> Response[Any]:
     """Login
 
-     Step 1 of OAuth 2.0.
-    Redirects the user's browser to the provider's login page.
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -67,9 +64,6 @@ async def asyncio_detailed(
     client: Union[AuthenticatedClient, Client],
 ) -> Response[Any]:
     """Login
-
-     Step 1 of OAuth 2.0.
-    Redirects the user's browser to the provider's login page.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

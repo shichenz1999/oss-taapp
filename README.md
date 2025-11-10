@@ -23,10 +23,13 @@ oss-taapp/
 │   ├── mail_client_api/          # HW1 abstract contract
 │   ├── gmail_client_impl/        # HW1 Gmail implementation
 │   ├── mail_client_service/      # HW1 FastAPI service for mail
+│   ├── mail_client_service_client/ # Generated SDK consumed by the adapter
 │   ├── mail_client_adapter/      # HW1 adapter for generated client
 │   ├── ai_chat_api/              # HW2 abstract contract
 │   ├── claude_chat_impl/         # HW2 Claude + OAuth implementation
-│   └── ai_chat_service/          # HW2 FastAPI deployment
+│   ├── ai_chat_service/          # HW2 FastAPI deployment
+│   ├── ai_chat_service_api_client/ # Generated SDK for the chat service
+│   └── ai_chat_adapter/          # HW2 adapter for the generated client
 ├── tests/                        # Cross-component tests
 ├── README.md
 ├── pyproject.toml                # Workspace + tooling config
@@ -134,6 +137,7 @@ Deliver a minimal Claude-powered chat microservice with OAuth-protected access. 
 - `ai_chat_api`: Abstract interface + dataclass message model.
 - `claude_chat_impl`: Concrete Anthropic client that registers itself with the API contract.
 - `ai_chat_service`: FastAPI deployment exposing `/auth/*` and `/chat`, plus the OAuth helpers.
+- `ai_chat_adapter`: HTTP adapter that uses the generated `ai_chat_service_api_client` package so callers stay on the abstract contract.
 
 ### Environment Variables
 
@@ -173,9 +177,10 @@ The implementation is stateless; each request sends a single prompt with no hist
 uv run pytest src/ai_chat_api/tests -q
 uv run pytest src/claude_chat_impl/tests -q
 uv run pytest src/ai_chat_service/tests -q
+uv run pytest src/ai_chat_adapter/tests -q
 ```
 
-The suite covers the abstract contract, OAuth flow (now hosted in `ai_chat_service`), settings loaders, and FastAPI routes. Coverage is enforced at 85%.
+The suite covers the abstract contract, OAuth flow (now hosted in `ai_chat_service`), JWT/session helpers, message translation, and FastAPI routes. Coverage is enforced at 85%.
 
 ---
 
@@ -208,3 +213,22 @@ For deeper explanations of each component and the testing philosophy, see:
 ---
 
 Happy hacking! Each homework builds on the same tooling, so once the workspace is synced you can switch between HW1 and HW2 without reconfiguring your environment. Keep credentials secure, reuse the provided test markers, and lean on the docs to understand each component’s responsibilities.
+
+## Deployment
+
+The AI chat service runs on Render at **https://oss-taapp-aen3.onrender.com**.
+
+**How to use**
+
+1. Visit `https://oss-taapp-aen3.onrender.com/auth/login` and sign in with Google. After authentication you will be redirected back to Swagger UI.
+2. Execute the `/chat` operation from Swagger UI (or any HTTP client) to converse with Claude.
+
+**Interfaces**
+
+- `/docs`: interactive Swagger UI
+- `/health`: health check
+- `/auth/login`: Google authentication and login
+- `/auth/logout`: logout
+- `/auth/callback`: authentication callback
+- `/chat`: chat interface
+- `/openapi.json`: base URL that `openapi-python-client` can consume

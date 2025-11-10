@@ -4,6 +4,8 @@
 
 from abc import ABC, abstractmethod
 
+__all__ = ["Message", "get_message"]
+
 
 class Message(ABC):
     """Abstract base class representing a chat message."""

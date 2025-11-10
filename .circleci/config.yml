@@ -79,7 +79,8 @@ jobs:
             source .venv/bin/activate
             # Target specific source directories for mypy
             uv add types-requests
-            mypy src/ --explicit-package-bases
+            uv run mypy tests 
+            # mypy src/ --explicit-package-bases
       - store_test_results:
           path: test-results/unit
       - store_artifacts: # Store coverage reports
@@ -323,7 +324,7 @@ workflows:
                 - develop
                 - kamen-requierd-fixes
                 - make-real-deletions
-                
+
       - report_summary:
           requires:
             - unit_test

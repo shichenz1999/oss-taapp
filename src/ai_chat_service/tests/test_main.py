@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 
 from ai_chat_api import Message, get_client
 from ai_chat_service.auth_deps import create_session_token
-from ai_chat_service.main import app, auth_manager, get_current_user_id
+from ai_chat_service import app, auth_manager, get_current_user_id
 
 
 @pytest.fixture

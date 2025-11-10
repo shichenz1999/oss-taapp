@@ -8,6 +8,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "ai-chat-adapter",
     "ai-chat-api",
     "ai-chat-service",
     "claude-chat-impl",
@@ -17,6 +18,28 @@ members = [
     "mail-client-service",
     "ta-assignment",
 ]
+
+[[package]]
+name = "ai-chat-adapter"
+version = "0.1.0"
+source = { editable = "src/ai_chat_adapter" }
+dependencies = [
+    { name = "ai-chat-api" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "pytest" },
+    { name = "pytest-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ai-chat-api", editable = "src/ai_chat_api" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
+    { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.12.0" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "ai-chat-api"
@@ -1771,6 +1794,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "requests" },
     { name = "uvicorn" },
 ]
@@ -1804,6 +1828,7 @@ requires-dist = [
     { name = "mkdocstrings-python", marker = "extra == 'dev'", specifier = ">=1.16.12" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.17.0" },
     { name = "pydantic", specifier = ">=2.11.9" },
+    { name = "pydantic-settings", specifier = ">=2.7.0" },
     { name = "pymdown-extensions", marker = "extra == 'dev'", specifier = ">=10.16.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.1" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.2.1" },

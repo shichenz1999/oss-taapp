@@ -5,12 +5,11 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from ai_chat_api import Client, Message
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "src"
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
-
-from ai_chat_api import Client, Message
 
 
 class DummyMessage(Message):
@@ -18,7 +17,8 @@ class DummyMessage(Message):
 
     def __init__(self, role: str, content: str) -> None:
         if not isinstance(role, str) or not role:
-            raise ValueError("role must be a non-empty string")
+            error_message = "role must be a non-empty string"
+            raise ValueError(error_message)
         self._role = role
         self._content = str(content)
 
@@ -40,7 +40,7 @@ def test_message_model_validates_role() -> None:
 
 def test_message_model_rejects_invalid_role() -> None:
     """The model raises when provided an unsupported role value."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="non-empty string"):
         DummyMessage(role="", content="nope")
 
 
@@ -62,4 +62,4 @@ def test_abstract_api_send_message_contract() -> None:
 def test_abstract_api_cannot_instantiate_directly() -> None:
     """Abstract classes remain non-instantiable until implemented."""
     with pytest.raises(TypeError):
-        Client()
+        Client()  # type: ignore[abstract]

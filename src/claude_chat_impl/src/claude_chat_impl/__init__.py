@@ -13,8 +13,8 @@ __all__ = [
     "ClaudeMessage",
     "get_client_impl",
     "get_message_impl",
-    "settings",
     "register",
+    "settings",
 ]
 
 

@@ -2,7 +2,7 @@
 
 """OAuth 2.0 helpers for the AI chat FastAPI service."""
 
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -36,7 +36,7 @@ class AuthManager:
         with httpx.Client() as client:
             response = client.post(settings.OAUTH_TOKEN_URL, data=data)
             response.raise_for_status()
-            return response.json()
+            return cast("dict[str, Any]", response.json())
 
     def get_user_info(self, access_token: str) -> dict[str, Any]:
         """Fetch user profile data using the provided access token."""
@@ -44,4 +44,4 @@ class AuthManager:
         with httpx.Client() as client:
             response = client.get(settings.OAUTH_USERINFO_URL, headers=headers)
             response.raise_for_status()
-            return response.json()
+            return cast("dict[str, Any]", response.json())

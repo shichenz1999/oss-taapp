@@ -21,9 +21,9 @@ os.environ.setdefault("SESSION_SECRET_KEY", "dummy")
 
 try:
     # Import the FastAPI app instance
-    from ai_chat_service.main import app
+    from ai_chat_service import app
 except Exception as exc:
-    raise SystemExit(f"Failed to import FastAPI app: {exc}")
+    raise SystemExit(f"Failed to import FastAPI app: {exc}") from exc
 
 
 def main() -> None:
