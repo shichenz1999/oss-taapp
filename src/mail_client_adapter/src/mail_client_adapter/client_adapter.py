@@ -11,6 +11,8 @@ from mail_client_service_client.fast_api_client.api.default import (
     list_messages_messages_get,
     mark_as_read_messages_message_id_mark_as_read_post,
 )
+from mail_client_service_client.fast_api_client.models.http_validation_error import HTTPValidationError
+from mail_client_service_client.fast_api_client.models.message_detail import MessageDetail
 from mail_client_service_client.fast_api_client.models.message_summary import MessageSummary
 from mail_client_service_client.fast_api_client.models.operation_response import OperationResponse
 
@@ -25,11 +27,24 @@ class ServiceMailClient(mail_client_api.Client):
     def get_message(self, message_id: str) -> mail_client_api.Message:
         """Return the detailed message for the given identifier."""
         result = get_message_messages_message_id_get.sync(client=self._client, message_id=message_id)
+        if not isinstance(result, MessageDetail):
+            payload_type = type(result).__name__
+            error_message = f"Unexpected payload type from get_message: {payload_type}"
+            raise TypeError(error_message)
         return ServiceMessage(result)
 
     def get_messages(self, max_results: int = 10) -> Iterator[mail_client_api.Message]:
         """Iterate over fully detailed messages up to the requested maximum."""
         result = list_messages_messages_get.sync(client=self._client, max_results=max_results)
+        if isinstance(result, HTTPValidationError):
+            error_message = f"Chat service validation error: {result.to_dict()}"
+            raise TypeError(error_message)
+        if result is None:
+            return
+        if not isinstance(result, list):
+            payload_type = type(result).__name__
+            error_message = f"Unexpected payload type from list_messages: {payload_type}"
+            raise TypeError(error_message)
         for summary in result:
             if isinstance(summary, MessageSummary):
                 yield self.get_message(summary.id)

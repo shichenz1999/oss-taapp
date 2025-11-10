@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.118.0",
     "pydantic>=2.11.9",
+    "pydantic-settings>=2.7.0",
     "requests>=2.32.5",
     "uvicorn>=0.38.0",
 ]
@@ -21,6 +22,7 @@ dev = [
     "pymdown-extensions>=10.16.1",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+    "pytest-mock>=3.15.0",
     "ruff>=0.12.7",
     "types-requests>=2.32.4.20250611",
 ]
@@ -31,6 +33,10 @@ members = [
   "src/gmail_client_impl",
   "src/mail_client_service",
   "src/mail_client_adapter",
+  "src/ai_chat_api",
+  "src/ai_chat_adapter",
+  "src/claude_chat_impl",
+  "src/ai_chat_service",
 ]
 
 [tool.ruff]
@@ -70,11 +76,15 @@ ignore = [
 strict = true
 explicit_package_bases = true # Required for src layout
 mypy_path = [
+    "src",
     "src/mail_client_api/src",
     "src/gmail_client_impl/src",
     "src/mail_client_service/src",
     "src/mail_client_adapter/src",
-    "src/mail_client_service_client",
+    "src/ai_chat_api/src",
+    "src/claude_chat_impl/src",
+    "src/ai_chat_service/src",
+    "src/ai_chat_adapter/src",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false
@@ -84,35 +94,39 @@ warn_unused_ignores = false
 module = [
     "google.*",
     "googleapiclient.*",
-    "gmail_client_impl.*",
-    "mail_client_api.*",
-    "mail_client_service.*",
-    "mail_client_service_client.*",
+    "google_auth_oauthlib.*",
+    "anthropic.*",
+    "jose.*",
+    "pydantic_settings.*",
 ]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "src.mail_client_adapter.tests.*",
-    "src.mail_client_service.tests.*",
+    "mail_client_adapter.tests.*",
+    "mail_client_service.tests.*",
+    "ai_chat_adapter.tests.*",
+    "ai_chat_api.tests.*",
+    "ai_chat_service.tests.*",
+    "claude_chat_impl.tests.*",
     "tests.*",
 ]
 disallow_untyped_defs = false
 disallow_untyped_calls = false
 disallow_incomplete_defs = false
 
-[[tool.mypy.overrides]]
-module = ["mail_client_adapter.message_adapter"]
-warn_return_any = false
-
 [tool.pytest.ini_options]
 pythonpath = [
     ".", 
     "src",
-    "src/mail_client_adapter/src",
-    "src/mail_client_service/src",
-    "src/gmail_client_impl/src",
     "src/mail_client_api/src",
+    "src/gmail_client_impl/src",
+    "src/mail_client_service/src",
+    "src/mail_client_adapter/src",
+    "src/ai_chat_api/src",
+    "src/claude_chat_impl/src",
+    "src/ai_chat_service/src",
+    "src/ai_chat_adapter/src",
 ]
 testpaths = ["tests", "src/*/tests"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
@@ -130,6 +144,7 @@ omit = [
     "*/tests/*",
     "*/__main__.py",
     "src/mail_client_service_client/fast_api_client/*",
+    "src/ai_chat_service_api_client/fast_api_client/*",
 ]
 
 [tool.coverage.report]
