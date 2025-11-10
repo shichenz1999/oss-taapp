@@ -43,14 +43,9 @@ class AiChatServiceAdapter(AbstractClient):
 
         return self._build_message_from_response(response)
 
-    def _build_message_from_response(
-        self, response: Response[ServiceChatResponse | HTTPValidationError]
-    ) -> AbstractMessage:
+    def _build_message_from_response(self, response: Response[ServiceChatResponse | HTTPValidationError]) -> AbstractMessage:
         if response.status_code != HTTPStatus.OK:
-            status_message = (
-                "Chat service returned unexpected status "
-                f"{response.status_code}: {response.content!r}"
-            )
+            status_message = f"Chat service returned unexpected status {response.status_code}: {response.content!r}"
             raise RuntimeError(status_message)
 
         parsed = response.parsed

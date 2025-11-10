@@ -12,7 +12,6 @@ if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
 
-
 class DummyMessage(Message):
     """Minimal concrete Message implementation for testing."""
 
@@ -63,4 +62,4 @@ def test_abstract_api_send_message_contract() -> None:
 def test_abstract_api_cannot_instantiate_directly() -> None:
     """Abstract classes remain non-instantiable until implemented."""
     with pytest.raises(TypeError):
-        Client()
+        Client()  # type: ignore[abstract]

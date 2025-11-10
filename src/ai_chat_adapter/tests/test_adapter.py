@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from http import HTTPStatus
+from typing import Any, TYPE_CHECKING, cast
 from unittest.mock import Mock
 
 import pytest
@@ -8,11 +11,14 @@ from ai_chat_service_api_client.fast_api_client.models.chat_response import Chat
 from ai_chat_service_api_client.fast_api_client.models.http_validation_error import HTTPValidationError
 from ai_chat_service_api_client.fast_api_client.types import Response
 
+if TYPE_CHECKING:
+    from ai_chat_service_api_client.fast_api_client.models.chat_request import ChatRequest as ServiceChatRequest
+
 
 def test_send_message_success(monkeypatch) -> None:
     """Adapter should translate request/response and surface the abstract message."""
     mock_client = Mock(name="service_client")
-    captured: dict[str, object] = {}
+    captured: dict[str, Any] = {}
     service_response = ChatResponse(role="assistant", content="hello user")
     mock_message = Mock(name="abstract_message")
 
@@ -42,7 +48,8 @@ def test_send_message_success(monkeypatch) -> None:
 
     assert result is mock_message
     assert captured["client"] is mock_client
-    assert captured["body"].prompt == "hello world"
+    body = cast("ServiceChatRequest", captured["body"])
+    assert body.prompt == "hello world"
     assert captured["role"] == "assistant"
     assert captured["content"] == "hello user"
 

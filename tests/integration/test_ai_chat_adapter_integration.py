@@ -16,7 +16,7 @@ import ai_chat_api
 from claude_chat_impl.message_impl import get_message_impl
 from ai_chat_adapter.adapter import AiChatServiceAdapter
 from ai_chat_service.auth_deps import create_session_token
-from ai_chat_service.main import app
+from ai_chat_service import app
 from ai_chat_service_api_client.fast_api_client.client import Client as ServiceClient
 
 pytestmark = pytest.mark.integration

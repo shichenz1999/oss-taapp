@@ -1,7 +1,5 @@
 """Authentication helpers for the AI chat service."""
 
-from typing import Any, cast
-
 from fastapi import HTTPException, Request, status
 from jose import JWTError, jwt  # type: ignore[import-untyped]
 
@@ -19,10 +17,7 @@ def get_current_user_id(request: Request) -> str:
         )
 
     try:
-        payload = cast(
-            "dict[str, Any]",
-            jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=[settings.SESSION_ALGORITHM]),
-        )
+        payload = jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=[settings.SESSION_ALGORITHM])
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

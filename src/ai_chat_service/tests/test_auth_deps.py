@@ -46,6 +46,7 @@ def test_get_current_user_id_handles_jwt_errors(monkeypatch: pytest.MonkeyPatch)
     token = "fake-token"
 
     request = _build_request(headers=[(b"cookie", f"session_token={token}".encode())])
+
     def _raise(*args: object, **kwargs: object) -> None:
         error_message = "bad token"
         raise JWTError(error_message)
@@ -62,6 +63,7 @@ def test_get_current_user_id_handles_jwt_errors(monkeypatch: pytest.MonkeyPatch)
 def test_get_current_user_id_requires_subject(monkeypatch: pytest.MonkeyPatch) -> None:
     token = "fake-token"
     request = _build_request(headers=[(b"cookie", f"session_token={token}".encode())])
+
     def _decode_mock(*_args: object, **_kwargs: object) -> dict[str, str]:
         return {}
 

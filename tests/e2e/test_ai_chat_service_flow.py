@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 import ai_chat_adapter
 import ai_chat_api
 from ai_chat_service.auth_deps import create_session_token
-from ai_chat_service.main import app
+from ai_chat_service import app
 from ai_chat_service_api_client.fast_api_client.client import Client as ServiceClient
 
 pytestmark = pytest.mark.e2e

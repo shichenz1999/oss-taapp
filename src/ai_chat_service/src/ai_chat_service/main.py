@@ -10,12 +10,14 @@ from pydantic import BaseModel
 import claude_chat_impl  # noqa: F401
 from ai_chat_api import Client, get_client
 
-from .auth_deps import create_session_token, get_current_user_id
+from .auth_deps import create_session_token
+from .auth_deps import get_current_user_id as auth_get_current_user_id
 from .auth_manager import AuthManager
 
 app = FastAPI()
 
 auth_manager = AuthManager()
+get_current_user_id = auth_get_current_user_id
 
 
 class ChatRequest(BaseModel):
