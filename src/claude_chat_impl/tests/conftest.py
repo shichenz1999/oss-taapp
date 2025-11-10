@@ -1,3 +1,4 @@
+# ruff: noqa: INP001
 """Shared pytest fixtures for the claude_chat_impl test suite."""
 
 import os
