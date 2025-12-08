@@ -5,9 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.ai_structured_response import AIStructuredResponse
 from ...models.chat_request import ChatRequest
 from ...models.http_validation_error import HTTPValidationError
+from ...models.message import Message
 from ...types import Response
 
 
@@ -32,9 +32,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Optional[Union[HTTPValidationError, Message]]:
     if response.status_code == 200:
-        response_200 = AIStructuredResponse.from_dict(response.json())
+        response_200 = Message.from_dict(response.json())
 
         return response_200
 
@@ -51,7 +51,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Response[Union[HTTPValidationError, Message]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -64,20 +64,22 @@ def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ChatRequest,
-) -> Response[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Response[Union[HTTPValidationError, Message]]:
     """Send Chat Message
 
-     Forward prompts to the configured ai_chat_api client.
+     The main (and only) API endpoint for our minimal service.
+    It takes a user's prompt and returns the AI's response.
+    This endpoint is protected and requires a valid session token.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AIStructuredResponse, HTTPValidationError]]
+        Response[Union[HTTPValidationError, Message]]
     """
 
     kwargs = _get_kwargs(
@@ -95,20 +97,22 @@ def sync(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ChatRequest,
-) -> Optional[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Optional[Union[HTTPValidationError, Message]]:
     """Send Chat Message
 
-     Forward prompts to the configured ai_chat_api client.
+     The main (and only) API endpoint for our minimal service.
+    It takes a user's prompt and returns the AI's response.
+    This endpoint is protected and requires a valid session token.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AIStructuredResponse, HTTPValidationError]
+        Union[HTTPValidationError, Message]
     """
 
     return sync_detailed(
@@ -121,20 +125,22 @@ async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ChatRequest,
-) -> Response[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Response[Union[HTTPValidationError, Message]]:
     """Send Chat Message
 
-     Forward prompts to the configured ai_chat_api client.
+     The main (and only) API endpoint for our minimal service.
+    It takes a user's prompt and returns the AI's response.
+    This endpoint is protected and requires a valid session token.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AIStructuredResponse, HTTPValidationError]]
+        Response[Union[HTTPValidationError, Message]]
     """
 
     kwargs = _get_kwargs(
@@ -150,20 +156,22 @@ async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ChatRequest,
-) -> Optional[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Optional[Union[HTTPValidationError, Message]]:
     """Send Chat Message
 
-     Forward prompts to the configured ai_chat_api client.
+     The main (and only) API endpoint for our minimal service.
+    It takes a user's prompt and returns the AI's response.
+    This endpoint is protected and requires a valid session token.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        body (ChatRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AIStructuredResponse, HTTPValidationError]
+        Union[HTTPValidationError, Message]
     """
 
     return (

@@ -30,7 +30,7 @@ def register(*, base_url: str | None = None, client_factory: ClientFactory | Non
 
         factory = default_factory
 
-    def _factory() -> ai_chat_api.Client:
+    def _factory() -> ai_chat_api.AIInterface:
         return AiChatServiceAdapter(client=factory())
 
-    ai_chat_api.get_client = _factory
+    ai_chat_api.get_ai_interface = _factory

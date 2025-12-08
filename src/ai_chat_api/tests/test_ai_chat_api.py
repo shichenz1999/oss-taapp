@@ -2,64 +2,64 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
-from ai_chat_api import Client, Message
+from ai_chat_api import AIInterface, AIStructuredResponse
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "src"
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
 
-class DummyMessage(Message):
-    """Minimal concrete Message implementation for testing."""
+class DummyAI(AIInterface):
+    """Minimal AI implementation for exercising the contract."""
 
-    def __init__(self, role: str, content: str) -> None:
-        if not isinstance(role, str) or not role:
-            error_message = "role must be a non-empty string"
-            raise ValueError(error_message)
-        self._role = role
-        self._content = str(content)
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, dict[str, object] | None]] = []
 
-    @property
-    def role(self) -> str:
-        return self._role
-
-    @property
-    def content(self) -> str:
-        return self._content
-
-
-def test_message_model_validates_role() -> None:
-    """A Message can be created with a role and content."""
-    message = DummyMessage(role="user", content="Hello, AI assistant!")
-    assert message.role == "user"
-    assert message.content == "Hello, AI assistant!"
+    def generate_response(
+        self,
+        user_input: str,
+        system_prompt: str,
+        response_schema: dict[str, object] | None = None,
+    ) -> str | AIStructuredResponse:
+        self.calls.append((user_input, system_prompt, response_schema))
+        if response_schema is not None:
+            return AIStructuredResponse(intent="ticket.create", parameters={"title": user_input})
+        return f"{system_prompt}: {user_input}"
 
 
-def test_message_model_rejects_invalid_role() -> None:
-    """The model raises when provided an unsupported role value."""
-    with pytest.raises(ValueError, match="non-empty string"):
-        DummyMessage(role="", content="nope")
+def test_structured_response_model_round_trips() -> None:
+    """Structured model preserves intent and parameters."""
+    response = AIStructuredResponse(intent="ticket.update", parameters={"id": 42, "status": "open"})
+
+    assert response.intent == "ticket.update"
+    assert response.parameters["id"] == 42
+    assert response.parameters["status"] == "open"
 
 
-def test_abstract_api_send_message_contract() -> None:
-    """Implementations must return assistant messages from send_message."""
-    mock_api = Mock(spec=Client)
-    mock_api.send_message.return_value = DummyMessage(
-        role="assistant",
-        content="Here is your AI response.",
-    )
+def test_generate_response_contract_accepts_schema() -> None:
+    """Implementations surface either a string or AIStructuredResponse."""
+    ai = DummyAI()
+    schema = {"type": "object"}
 
-    response = mock_api.send_message(prompt="Hello!", user_id="user-123")
+    result = ai.generate_response(user_input="hello", system_prompt="assist", response_schema=schema)
 
-    mock_api.send_message.assert_called_once_with(prompt="Hello!", user_id="user-123")
-    assert response.role == "assistant"
-    assert response.content == "Here is your AI response."
+    assert isinstance(result, AIStructuredResponse)
+    assert result.intent == "ticket.create"
+    assert ai.calls == [("hello", "assist", schema)]
+
+
+def test_generate_response_can_return_string() -> None:
+    ai = DummyAI()
+
+    result = ai.generate_response(user_input="hello", system_prompt="assist")
+
+    assert isinstance(result, str)
+    assert "assist" in result
 
 
 def test_abstract_api_cannot_instantiate_directly() -> None:
     """Abstract classes remain non-instantiable until implemented."""
     with pytest.raises(TypeError):
-        Client()  # type: ignore[abstract]
+        AIInterface()  # type: ignore[abstract]

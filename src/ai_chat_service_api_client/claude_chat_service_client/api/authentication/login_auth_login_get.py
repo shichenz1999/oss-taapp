@@ -42,7 +42,8 @@ def sync_detailed(
 ) -> Response[Any]:
     """Login
 
-     Kick off OAuth login flow.
+     Step 1 of OAuth 2.0.
+    Redirects the user's browser to the provider's login page.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -67,7 +68,8 @@ async def asyncio_detailed(
 ) -> Response[Any]:
     """Login
 
-     Kick off OAuth login flow.
+     Step 1 of OAuth 2.0.
+    Redirects the user's browser to the provider's login page.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

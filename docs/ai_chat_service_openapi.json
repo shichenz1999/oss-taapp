@@ -1,9 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Claude Chat Service",
-    "description": "HW2 OSPD: Implements AI chat and OAuth 2.0",
-    "version": "1.0.0"
+    "title": "FastAPI",
+    "version": "0.1.0"
   },
   "paths": {
     "/health": {
@@ -12,14 +11,20 @@
           "Monitoring"
         ],
         "summary": "Health Check",
-        "description": "Provides a simple HTTP 200 OK health check endpoint.",
+        "description": "Return an operational heartbeat.",
         "operationId": "health_check_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
               }
             }
           }
@@ -32,7 +37,7 @@
           "Authentication"
         ],
         "summary": "Login",
-        "description": "Step 1 of OAuth 2.0.\nRedirects the user's browser to the provider's login page.",
+        "description": "Kick off OAuth login flow.",
         "operationId": "login_auth_login_get",
         "responses": {
           "200": {
@@ -52,7 +57,7 @@
           "Authentication"
         ],
         "summary": "Logout",
-        "description": "Clears the session cookie and redirects the user back to the API docs.",
+        "description": "Clear the session cookie and redirect to docs.",
         "operationId": "logout_auth_logout_get",
         "responses": {
           "200": {
@@ -72,7 +77,7 @@
           "Authentication"
         ],
         "summary": "Auth Callback",
-        "description": "(Improved) Step 2 of OAuth 2.0.\nHandles the callback, checking for 'error' OR 'code'.",
+        "description": "Handle OAuth callback responses to establish a session.",
         "operationId": "auth_callback_auth_callback_get",
         "parameters": [
           {
@@ -136,7 +141,7 @@
           "Chat"
         ],
         "summary": "Send Chat Message",
-        "description": "The main (and only) API endpoint for our minimal service.\nIt takes a user's prompt and returns the AI's response.\nThis endpoint is protected and requires a valid session token.",
+        "description": "Forward prompts to the configured ai_chat_api client.",
         "operationId": "send_chat_message_chat_post",
         "requestBody": {
           "content": {
@@ -154,7 +159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Message"
+                  "$ref": "#/components/schemas/AIStructuredResponse"
                 }
               }
             }
@@ -175,18 +180,55 @@
   },
   "components": {
     "schemas": {
-      "ChatRequest": {
+      "AIStructuredResponse": {
         "properties": {
-          "prompt": {
+          "intent": {
             "type": "string",
-            "title": "Prompt"
+            "title": "Intent"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters"
           }
         },
         "type": "object",
         "required": [
-          "prompt"
+          "intent"
         ],
-        "title": "ChatRequest"
+        "title": "AIStructuredResponse",
+        "description": "Structured AI response capturing an action intent and its parameters."
+      },
+      "ChatRequest": {
+        "properties": {
+          "user_input": {
+            "type": "string",
+            "title": "User Input"
+          },
+          "system_prompt": {
+            "type": "string",
+            "title": "System Prompt"
+          },
+          "response_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_input",
+          "system_prompt"
+        ],
+        "title": "ChatRequest",
+        "description": "Inbound payload carrying a single chat prompt."
       },
       "HTTPValidationError": {
         "properties": {
@@ -200,33 +242,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "Message": {
-        "properties": {
-          "role": {
-            "$ref": "#/components/schemas/MessageRole"
-          },
-          "content": {
-            "type": "string",
-            "title": "Content"
-          }
-        },
-        "type": "object",
-        "required": [
-          "role",
-          "content"
-        ],
-        "title": "Message",
-        "description": "A single chat message. This is the fundamental data model\nfor our API."
-      },
-      "MessageRole": {
-        "type": "string",
-        "enum": [
-          "user",
-          "assistant"
-        ],
-        "title": "MessageRole",
-        "description": "Defines the role of the entity creating a message.\n'user' is for the end-user, 'assistant' is for the AI."
       },
       "ValidationError": {
         "properties": {

@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from ai_chat_api import Message, get_client
+from ai_chat_api import AIInterface, AIStructuredResponse, get_ai_interface
 from ai_chat_service.auth_deps import create_session_token
 from ai_chat_service import app, auth_manager, get_current_user_id
 
@@ -101,7 +101,7 @@ def test_logout_clears_session_cookie(client: TestClient) -> None:
 
 
 def test_chat_endpoint_requires_authentication(client: TestClient) -> None:
-    response = client.post("/chat", json={"prompt": "Hello"})
+    response = client.post("/chat", json={"user_input": "Hello", "system_prompt": "assist"})
     assert response.status_code == 401
 
 
@@ -110,19 +110,26 @@ def test_chat_endpoint_with_valid_token(client: TestClient, mocker: MockerFixtur
         "claude_chat_impl.claude_impl.claude_client.messages.create",
         return_value=SimpleNamespace(
             role="assistant",
-            content=[SimpleNamespace(text="Patched reply")],
+            content=[SimpleNamespace(text='{"intent":"ticket.create","parameters":{"title":"Patched reply"}}')],
         ),
     )
     token = create_session_token("user@example.com")
 
     client.cookies.set("session_token", token)
     try:
-        response = client.post("/chat", json={"prompt": "Hi"})
+        response = client.post(
+            "/chat",
+            json={
+                "user_input": "Create a ticket for me",
+                "system_prompt": "You are a support bot",
+                "response_schema": {"type": "object"},
+            },
+        )
     finally:
         client.cookies.clear()
 
     assert response.status_code == 200
-    assert response.json() == {"role": "assistant", "content": "Patched reply"}
+    assert response.json() == {"intent": "ticket.create", "parameters": {"title": "Patched reply"}}
 
 
 def test_chat_endpoint_returns_ai_message(
@@ -138,29 +145,28 @@ def test_chat_endpoint_returns_ai_message(
         ),
     )
 
-    class _DummyClient:
-        def send_message(self, prompt: str, user_id: str) -> Message:
-            return DummyMessage(role="assistant", content="Mocked reply")
+    class _DummyClient(AIInterface):
+        def generate_response(
+            self,
+            user_input: str,
+            system_prompt: str,
+            response_schema: dict[str, object] | None = None,
+        ) -> str | AIStructuredResponse:
+            _ = (user_input, system_prompt, response_schema)
+            return AIStructuredResponse(intent="message", parameters={"response": "Mocked reply"})
 
-    app.dependency_overrides[get_client] = lambda: _DummyClient()
+    app.dependency_overrides[get_ai_interface] = lambda: _DummyClient()
 
     try:
-        response = client.post("/chat", json={"prompt": "Hi Claude"})
+        response = client.post(
+            "/chat",
+            json={
+                "user_input": "Hi Claude",
+                "system_prompt": "You are a helpful assistant",
+            },
+        )
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json() == {"role": "assistant", "content": "Mocked reply"}
-
-class DummyMessage(Message):
-    def __init__(self, role: str, content: str) -> None:
-        self._role = role
-        self._content = content
-
-    @property
-    def role(self) -> str:
-        return self._role
-
-    @property
-    def content(self) -> str:
-        return self._content
+    assert response.json() == {"intent": "message", "parameters": {"response": "Mocked reply"}}

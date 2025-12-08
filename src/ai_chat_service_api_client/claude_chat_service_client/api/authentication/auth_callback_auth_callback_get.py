@@ -5,37 +5,47 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.ai_structured_response import AIStructuredResponse
-from ...models.chat_request import ChatRequest
 from ...models.http_validation_error import HTTPValidationError
-from ...types import Response
+from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    body: ChatRequest,
+    code: Union[None, Unset, str] = UNSET,
+    error: Union[None, Unset, str] = UNSET,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
+    params: dict[str, Any] = {}
+
+    json_code: Union[None, Unset, str]
+    if isinstance(code, Unset):
+        json_code = UNSET
+    else:
+        json_code = code
+    params["code"] = json_code
+
+    json_error: Union[None, Unset, str]
+    if isinstance(error, Unset):
+        json_error = UNSET
+    else:
+        json_error = error
+    params["error"] = json_error
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
-        "method": "post",
-        "url": "/chat",
+        "method": "get",
+        "url": "/auth/callback",
+        "params": params,
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
-
-    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Optional[Union[Any, HTTPValidationError]]:
     if response.status_code == 200:
-        response_200 = AIStructuredResponse.from_dict(response.json())
-
+        response_200 = response.json()
         return response_200
 
     if response.status_code == 422:
@@ -51,7 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[AIStructuredResponse, HTTPValidationError]]:
+) -> Response[Union[Any, HTTPValidationError]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -63,25 +73,29 @@ def _build_response(
 def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: ChatRequest,
-) -> Response[Union[AIStructuredResponse, HTTPValidationError]]:
-    """Send Chat Message
+    code: Union[None, Unset, str] = UNSET,
+    error: Union[None, Unset, str] = UNSET,
+) -> Response[Union[Any, HTTPValidationError]]:
+    """Auth Callback
 
-     Forward prompts to the configured ai_chat_api client.
+     (Improved) Step 2 of OAuth 2.0.
+    Handles the callback, checking for 'error' OR 'code'.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        code (Union[None, Unset, str]):
+        error (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AIStructuredResponse, HTTPValidationError]]
+        Response[Union[Any, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        code=code,
+        error=error,
     )
 
     response = client.get_httpx_client().request(
@@ -94,51 +108,59 @@ def sync_detailed(
 def sync(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: ChatRequest,
-) -> Optional[Union[AIStructuredResponse, HTTPValidationError]]:
-    """Send Chat Message
+    code: Union[None, Unset, str] = UNSET,
+    error: Union[None, Unset, str] = UNSET,
+) -> Optional[Union[Any, HTTPValidationError]]:
+    """Auth Callback
 
-     Forward prompts to the configured ai_chat_api client.
+     (Improved) Step 2 of OAuth 2.0.
+    Handles the callback, checking for 'error' OR 'code'.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        code (Union[None, Unset, str]):
+        error (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AIStructuredResponse, HTTPValidationError]
+        Union[Any, HTTPValidationError]
     """
 
     return sync_detailed(
         client=client,
-        body=body,
+        code=code,
+        error=error,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: ChatRequest,
-) -> Response[Union[AIStructuredResponse, HTTPValidationError]]:
-    """Send Chat Message
+    code: Union[None, Unset, str] = UNSET,
+    error: Union[None, Unset, str] = UNSET,
+) -> Response[Union[Any, HTTPValidationError]]:
+    """Auth Callback
 
-     Forward prompts to the configured ai_chat_api client.
+     (Improved) Step 2 of OAuth 2.0.
+    Handles the callback, checking for 'error' OR 'code'.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        code (Union[None, Unset, str]):
+        error (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AIStructuredResponse, HTTPValidationError]]
+        Response[Union[Any, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        code=code,
+        error=error,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -149,26 +171,30 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: ChatRequest,
-) -> Optional[Union[AIStructuredResponse, HTTPValidationError]]:
-    """Send Chat Message
+    code: Union[None, Unset, str] = UNSET,
+    error: Union[None, Unset, str] = UNSET,
+) -> Optional[Union[Any, HTTPValidationError]]:
+    """Auth Callback
 
-     Forward prompts to the configured ai_chat_api client.
+     (Improved) Step 2 of OAuth 2.0.
+    Handles the callback, checking for 'error' OR 'code'.
 
     Args:
-        body (ChatRequest): Inbound payload carrying a single chat prompt.
+        code (Union[None, Unset, str]):
+        error (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AIStructuredResponse, HTTPValidationError]
+        Union[Any, HTTPValidationError]
     """
 
     return (
         await asyncio_detailed(
             client=client,
-            body=body,
+            code=code,
+            error=error,
         )
     ).parsed

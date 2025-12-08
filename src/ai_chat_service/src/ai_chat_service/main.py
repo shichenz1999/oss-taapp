@@ -1,6 +1,6 @@
 """FastAPI application exposing the AI chat endpoints."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import RedirectResponse
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 # Importing claude_chat_impl triggers registration of the concrete implementation.
 import claude_chat_impl  # noqa: F401
-from ai_chat_api import Client, get_client
+from ai_chat_api import AIInterface, AIStructuredResponse, get_ai_interface
 
 from .auth_deps import create_session_token
 from .auth_deps import get_current_user_id as auth_get_current_user_id
@@ -23,14 +23,9 @@ get_current_user_id = auth_get_current_user_id
 class ChatRequest(BaseModel):
     """Inbound payload carrying a single chat prompt."""
 
-    prompt: str
-
-
-class ChatResponse(BaseModel):
-    """Standardized chat response mirrored from ai_chat_api."""
-
-    role: str
-    content: str
+    user_input: str
+    system_prompt: str
+    response_schema: dict[str, Any] | None = None
 
 
 @app.get("/", include_in_schema=False)
@@ -83,12 +78,20 @@ async def auth_callback(code: str | None = None, error: str | None = None) -> Re
     return response
 
 
-@app.post("/chat", tags=["Chat"])
+@app.post("/chat", tags=["Chat"], response_model=AIStructuredResponse)
 async def send_chat_message(
     chat_request: ChatRequest,
     current_user_id: Annotated[str, Depends(get_current_user_id)],
-    chat_client: Annotated[Client, Depends(get_client)],
-) -> ChatResponse:
+    chat_client: Annotated[AIInterface, Depends(get_ai_interface)],
+) -> AIStructuredResponse:
     """Forward prompts to the configured ai_chat_api client."""
-    message = chat_client.send_message(prompt=chat_request.prompt, user_id=current_user_id)
-    return ChatResponse(role=message.role, content=message.content)
+    response = chat_client.generate_response(
+        user_input=chat_request.user_input,
+        system_prompt=chat_request.system_prompt,
+        response_schema=chat_request.response_schema,
+    )
+
+    if isinstance(response, AIStructuredResponse):
+        return response
+
+    return AIStructuredResponse(intent="message", parameters={"response": response})

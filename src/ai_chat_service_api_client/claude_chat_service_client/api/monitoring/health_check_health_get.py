@@ -11,7 +11,7 @@ from ...types import Response
 def _get_kwargs() -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/auth/login",
+        "url": "/health",
     }
 
     return _kwargs
@@ -40,9 +40,9 @@ def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
 ) -> Response[Any]:
-    """Login
+    """Health Check
 
-     Kick off OAuth login flow.
+     Provides a simple HTTP 200 OK health check endpoint.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -65,9 +65,9 @@ async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
 ) -> Response[Any]:
-    """Login
+    """Health Check
 
-     Kick off OAuth login flow.
+     Provides a simple HTTP 200 OK health check endpoint.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

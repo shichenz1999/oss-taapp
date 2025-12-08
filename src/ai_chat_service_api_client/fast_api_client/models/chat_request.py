@@ -1,42 +1,91 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.chat_request_response_schema_type_0 import ChatRequestResponseSchemaType0
+
 
 T = TypeVar("T", bound="ChatRequest")
 
 
 @_attrs_define
 class ChatRequest:
-    """
+    """Inbound payload carrying a single chat prompt.
+
     Attributes:
-        prompt (str):
+        user_input (str):
+        system_prompt (str):
+        response_schema (Union['ChatRequestResponseSchemaType0', None, Unset]):
     """
 
-    prompt: str
+    user_input: str
+    system_prompt: str
+    response_schema: Union["ChatRequestResponseSchemaType0", None, Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        prompt = self.prompt
+        from ..models.chat_request_response_schema_type_0 import ChatRequestResponseSchemaType0
+
+        user_input = self.user_input
+
+        system_prompt = self.system_prompt
+
+        response_schema: Union[None, Unset, dict[str, Any]]
+        if isinstance(self.response_schema, Unset):
+            response_schema = UNSET
+        elif isinstance(self.response_schema, ChatRequestResponseSchemaType0):
+            response_schema = self.response_schema.to_dict()
+        else:
+            response_schema = self.response_schema
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "prompt": prompt,
+                "user_input": user_input,
+                "system_prompt": system_prompt,
             }
         )
+        if response_schema is not UNSET:
+            field_dict["response_schema"] = response_schema
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.chat_request_response_schema_type_0 import ChatRequestResponseSchemaType0
+
         d = dict(src_dict)
-        prompt = d.pop("prompt")
+        user_input = d.pop("user_input")
+
+        system_prompt = d.pop("system_prompt")
+
+        def _parse_response_schema(data: object) -> Union["ChatRequestResponseSchemaType0", None, Unset]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                response_schema_type_0 = ChatRequestResponseSchemaType0.from_dict(data)
+
+                return response_schema_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union["ChatRequestResponseSchemaType0", None, Unset], data)
+
+        response_schema = _parse_response_schema(d.pop("response_schema", UNSET))
 
         chat_request = cls(
-            prompt=prompt,
+            user_input=user_input,
+            system_prompt=system_prompt,
+            response_schema=response_schema,
         )
 
         chat_request.additional_properties = d

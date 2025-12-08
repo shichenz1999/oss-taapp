@@ -78,6 +78,8 @@ def sync_detailed(
 ) -> Response[Union[Any, HTTPValidationError]]:
     """Auth Callback
 
+     Handle OAuth callback responses to establish a session.
+
     Args:
         code (Union[None, Unset, str]):
         error (Union[None, Unset, str]):
@@ -110,6 +112,8 @@ def sync(
 ) -> Optional[Union[Any, HTTPValidationError]]:
     """Auth Callback
 
+     Handle OAuth callback responses to establish a session.
+
     Args:
         code (Union[None, Unset, str]):
         error (Union[None, Unset, str]):
@@ -136,6 +140,8 @@ async def asyncio_detailed(
     error: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Any, HTTPValidationError]]:
     """Auth Callback
+
+     Handle OAuth callback responses to establish a session.
 
     Args:
         code (Union[None, Unset, str]):
@@ -166,6 +172,8 @@ async def asyncio(
     error: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Any, HTTPValidationError]]:
     """Auth Callback
+
+     Handle OAuth callback responses to establish a session.
 
     Args:
         code (Union[None, Unset, str]):

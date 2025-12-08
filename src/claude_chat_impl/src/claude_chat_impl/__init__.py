@@ -2,7 +2,7 @@
 
 """Public exports for the Claude chat implementation package."""
 
-from .claude_impl import ClaudeClient, get_client_impl
+from .claude_impl import ClaudeClient, get_ai_interface_impl
 from .claude_impl import register as _register_client
 from .message_impl import ClaudeMessage, get_message_impl
 from .message_impl import register as _register_message
@@ -11,7 +11,7 @@ from .settings import settings
 __all__ = [
     "ClaudeClient",
     "ClaudeMessage",
-    "get_client_impl",
+    "get_ai_interface_impl",
     "get_message_impl",
     "register",
     "settings",

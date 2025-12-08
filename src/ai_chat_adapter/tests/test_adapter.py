@@ -1,100 +1,74 @@
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import Any, TYPE_CHECKING, cast
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
 from ai_chat_adapter.adapter import AiChatServiceAdapter
-from ai_chat_service_api_client.fast_api_client.models.chat_response import ChatResponse
-from ai_chat_service_api_client.fast_api_client.models.http_validation_error import HTTPValidationError
-from ai_chat_service_api_client.fast_api_client.types import Response
-
-if TYPE_CHECKING:
-    from ai_chat_service_api_client.fast_api_client.models.chat_request import ChatRequest as ServiceChatRequest
+from ai_chat_api import AIStructuredResponse
 
 
-def test_send_message_success(monkeypatch) -> None:
-    """Adapter should translate request/response and surface the abstract message."""
+class DummyResponse:
+    def __init__(self, status_code: int, payload: Any, content: bytes | None = None) -> None:
+        self.status_code = status_code
+        self._payload = payload
+        self.content = content if content is not None else b""
+
+    def json(self) -> Any:
+        return self._payload
+
+
+def test_generate_response_success() -> None:
+    """Adapter should translate request/response and surface the structured response."""
     mock_client = Mock(name="service_client")
-    captured: dict[str, Any] = {}
-    service_response = ChatResponse(role="assistant", content="hello user")
-    mock_message = Mock(name="abstract_message")
-
-    def fake_sync_detailed(*, client, body):
-        captured["client"] = client
-        captured["body"] = body
-        return Response(
-            status_code=HTTPStatus.OK,
-            content=b'{"role":"assistant","content":"hello user"}',
-            headers={},
-            parsed=service_response,
-        )
-
-    def fake_get_message(role: str, content: str):
-        captured["role"] = role
-        captured["content"] = content
-        return mock_message
-
-    monkeypatch.setattr(
-        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
-        fake_sync_detailed,
+    httpx_client = Mock(name="httpx_client")
+    mock_client.get_httpx_client.return_value = httpx_client
+    http_response = DummyResponse(
+        status_code=HTTPStatus.OK,
+        payload={"intent": "ticket.create", "parameters": {"title": "hello user"}},
     )
-    monkeypatch.setattr("ai_chat_adapter.adapter.ai_chat_api.get_message", fake_get_message)
+    httpx_client.request.return_value = http_response
 
     adapter = AiChatServiceAdapter(client=mock_client)
-    result = adapter.send_message(prompt="hello world", user_id="user-123")
-
-    assert result is mock_message
-    assert captured["client"] is mock_client
-    body = cast("ServiceChatRequest", captured["body"])
-    assert body.prompt == "hello world"
-    assert captured["role"] == "assistant"
-    assert captured["content"] == "hello user"
-
-
-def test_send_message_raises_on_http_error(monkeypatch) -> None:
-    mock_client = Mock(name="service_client")
-
-    def _http_error(*, client, body):
-        _ = (client, body)
-        return Response(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            content=b"boom",
-            headers={},
-            parsed=None,
-        )
-
-    monkeypatch.setattr(
-        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
-        _http_error,
+    result = adapter.generate_response(
+        user_input="hello world",
+        system_prompt="act as assistant",
+        response_schema={"type": "object"},
     )
+
+    assert isinstance(result, AIStructuredResponse)
+    assert result.intent == "ticket.create"
+    assert result.parameters["title"] == "hello user"
+    httpx_client.request.assert_called_once()
+    args, kwargs = httpx_client.request.call_args
+    assert args[0] == "post"
+    assert args[1] == "/chat"
+    assert kwargs["json"]["user_input"] == "hello world"
+    assert kwargs["json"]["system_prompt"] == "act as assistant"
+    assert kwargs["json"]["response_schema"] == {"type": "object"}
+
+
+def test_generate_response_raises_on_http_error() -> None:
+    mock_client = Mock(name="service_client")
+    httpx_client = Mock(name="httpx_client")
+    mock_client.get_httpx_client.return_value = httpx_client
+    httpx_client.request.return_value = DummyResponse(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, payload={})
 
     adapter = AiChatServiceAdapter(client=mock_client)
 
     with pytest.raises(RuntimeError):
-        adapter.send_message(prompt="hello world", user_id="user-123")
+        adapter.generate_response(user_input="hello world", system_prompt="assist")
 
 
-def test_send_message_raises_on_validation_error(monkeypatch) -> None:
+def test_generate_response_raises_on_invalid_payload() -> None:
     mock_client = Mock(name="service_client")
-
-    def _validation_error(*, client, body):
-        _ = (client, body)
-        return Response(
-            status_code=HTTPStatus.OK,
-            content=b"validation failed",
-            headers={},
-            parsed=HTTPValidationError(),
-        )
-
-    monkeypatch.setattr(
-        "ai_chat_adapter.adapter.send_chat_message_chat_post.sync_detailed",
-        _validation_error,
-    )
+    httpx_client = Mock(name="httpx_client")
+    mock_client.get_httpx_client.return_value = httpx_client
+    httpx_client.request.return_value = DummyResponse(status_code=HTTPStatus.OK, payload={"unexpected": True})
 
     adapter = AiChatServiceAdapter(client=mock_client)
 
     with pytest.raises(TypeError):
-        adapter.send_message(prompt="hello world", user_id="user-123")
+        adapter.generate_response(user_input="hello world", system_prompt="assist")

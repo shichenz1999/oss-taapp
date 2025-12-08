@@ -1,44 +1,58 @@
-# claude_chat_impl/tests/test_claude_impl.py
+"""Tests for the Claude AIInterface implementation."""
 
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
-# Import what we are testing
+from ai_chat_api import AIInterface, AIStructuredResponse
 from claude_chat_impl.claude_impl import ClaudeClient
 
-# Import the contract models
-from ai_chat_api import Message
+
+def test_generate_response_returns_structured_payload(mocker):
+    """generate_response returns an AIStructuredResponse when JSON is requested."""
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_content = MagicMock()
+    mock_content.text = '{"intent":"ticket.create","parameters":{"title":"mocked"}}'
+    mock_response.content = [mock_content]
+    mock_client.messages.create.return_value = mock_response
+
+    mocker.patch("claude_chat_impl.claude_impl.claude_client", mock_client)
+
+    impl: AIInterface = ClaudeClient()
+    response = impl.generate_response(
+        user_input="Create a ticket please",
+        system_prompt="Assist with tickets",
+        response_schema={"type": "object"},
+    )
+
+    assert isinstance(response, AIStructuredResponse)
+    assert response.intent == "ticket.create"
+    assert response.parameters["title"] == "mocked"
+
+    mock_client.messages.create.assert_called_once_with(
+        model="claude-3-haiku-20240307",
+        max_tokens=1024,
+        system=ANY,
+        messages=[{"role": "user", "content": "Create a ticket please"}],
+    )
+    assert "Reply in JSON format." in mock_client.messages.create.call_args.kwargs["system"]
 
 
-def test_send_message_success(mocker):
-    """Send_message returns an ai_chat_api.Message populated from Anthropic output."""
+def test_generate_response_allows_plain_text_when_not_json(mocker):
     mock_client = MagicMock()
     mock_response = MagicMock()
     mock_content = MagicMock()
     mock_content.text = "This is a mock AI reply."
     mock_response.content = [mock_content]
-    mock_response.role = "assistant"
     mock_client.messages.create.return_value = mock_response
-
-    # This replaces the 'claude_client' in that file with our mock
     mocker.patch("claude_chat_impl.claude_impl.claude_client", mock_client)
 
-    # 2. Create an instance of our class
     impl = ClaudeClient()
 
-    # 3. Call the method
-    prompt = "Hello AI"
-    user_id = "test_user_123"
-    response = impl.send_message(prompt, user_id)
-
-    # 4. Assert the results
-    # Check that our AI reply was returned
-    assert isinstance(response, Message)
-    assert response.role == "assistant"
-    assert response.content == "This is a mock AI reply."
-
-    # Check that the mock client was called correctly
-    mock_client.messages.create.assert_called_once_with(
-        model="claude-3-haiku-20240307",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
+    response = impl.generate_response(
+        user_input="Hello AI",
+        system_prompt="Be concise",
+        response_schema=None,
     )
+
+    assert isinstance(response, str)
+    assert response == "This is a mock AI reply."

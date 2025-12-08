@@ -48,7 +48,7 @@ def test_ai_chat_stack_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
     base_url = "http://testserver"
     claude_response = SimpleNamespace(
         role="assistant",
-        content=[SimpleNamespace(text="E2E reply")],
+        content=[SimpleNamespace(text='{"intent":"ticket.create","parameters":{"title":"E2E reply"}}')],
     )
 
     monkeypatch.setattr(
@@ -56,7 +56,7 @@ def test_ai_chat_stack_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda *_, **__: claude_response,
     )
 
-    previous_factory = ai_chat_api.get_client
+    previous_factory = ai_chat_api.get_ai_interface
 
     try:
         with httpx.Client(transport=transport, base_url=base_url) as http_client:
@@ -69,11 +69,15 @@ def test_ai_chat_stack_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
 
             ai_chat_adapter.register(client_factory=_client_factory)
 
-            client = ai_chat_api.get_client()
-            message = client.send_message(prompt="Hello world", user_id="user-123")
+            client = ai_chat_api.get_ai_interface()
+            message = client.generate_response(
+                user_input="Create a ticket",
+                system_prompt="You are a helpful assistant",
+                response_schema={"type": "object"},
+            )
 
-        assert message.role == "assistant"
-        assert message.content == "E2E reply"
+        assert message.intent == "ticket.create"
+        assert message.parameters["title"] == "E2E reply"
     finally:
-        ai_chat_api.get_client = previous_factory
+        ai_chat_api.get_ai_interface = previous_factory
         transport.close()

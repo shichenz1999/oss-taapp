@@ -12,8 +12,6 @@ import pytest
 if TYPE_CHECKING:
     from starlette.types import ASGIApp
 
-import ai_chat_api
-from claude_chat_impl.message_impl import get_message_impl
 from ai_chat_adapter.adapter import AiChatServiceAdapter
 from ai_chat_service.auth_deps import create_session_token
 from ai_chat_service import app
@@ -56,14 +54,13 @@ def test_ai_chat_adapter_round_trip_through_service(monkeypatch: pytest.MonkeyPa
     base_url = "http://testserver"
     claude_response = SimpleNamespace(
         role="assistant",
-        content=[SimpleNamespace(text="Integration reply")],
+        content=[SimpleNamespace(text='{"intent":"ticket.create","parameters":{"title":"Integration reply"}}')],
     )
 
     monkeypatch.setattr(
         "claude_chat_impl.claude_impl.claude_client.messages.create",
         lambda *_, **__: claude_response,
     )
-    monkeypatch.setattr(ai_chat_api, "get_message", get_message_impl, raising=False)
 
     try:
         with httpx.Client(transport=transport, base_url=base_url) as http_client:
@@ -71,10 +68,14 @@ def test_ai_chat_adapter_round_trip_through_service(monkeypatch: pytest.MonkeyPa
             http_client.cookies.set("session_token", token)
             adapter = _build_adapter(http_client, base_url)
 
-            message = adapter.send_message(prompt="Hello Claude", user_id="user-123")
+            message = adapter.generate_response(
+                user_input="Create a ticket",
+                system_prompt="You are a helpful assistant",
+                response_schema={"type": "object"},
+            )
 
-        assert message.role == "assistant"
-        assert message.content == "Integration reply"
+        assert message.intent == "ticket.create"
+        assert message.parameters["title"] == "Integration reply"
     finally:
         transport.close()
 
@@ -84,14 +85,16 @@ def test_ai_chat_adapter_requires_session_token(monkeypatch: pytest.MonkeyPatch)
     transport = _build_sync_transport(app)
     base_url = "http://testserver"
 
-    monkeypatch.setattr(ai_chat_api, "get_message", get_message_impl, raising=False)
-
     try:
         with httpx.Client(transport=transport, base_url=base_url) as http_client:
             adapter = _build_adapter(http_client, base_url)
 
             with pytest.raises(RuntimeError) as exc:
-                adapter.send_message(prompt="Hi", user_id="unauthenticated-user")
+                adapter.generate_response(
+                    user_input="Hi",
+                    system_prompt="You are a helpful assistant",
+                    response_schema={"type": "object"},
+                )
 
         assert "401" in str(exc.value)
     finally:
