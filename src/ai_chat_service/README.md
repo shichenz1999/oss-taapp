@@ -1,12 +1,14 @@
 # AI Chat Service
 
 ## Overview
+
 `ai_chat_service` packages the AI chat contract inside a FastAPI
 application. It authenticates users through OAuth, issues session cookies,
 and proxies chat prompts to the active `ai_chat_api.Client`
 implementation (currently registered by importing `claude_chat_impl`).
 
 ## Responsibilities
+
 - Serve an OAuth-backed HTTP surface for the chat experience.
 - Manage the session lifecycle by minting and validating JWT cookies.
 - Convert HTTP payloads into `ai_chat_api` messages and expose the result as JSON.
@@ -14,6 +16,7 @@ implementation (currently registered by importing `claude_chat_impl`).
 - Offer dependency inversion hooks so tests can swap out authentication or chat clients.
 
 ## Key Modules
+
 ```
 ai_chat_service/
 ├── README.md                                # Package guide (this file)
@@ -47,6 +50,7 @@ ai_chat_service/
   responses with overridden dependencies and JWT round-trips.
 
 ## HTTP Routes
+
 - `GET /` – Permanently redirects to `/docs` for quick access to the Swagger UI.
 - `GET /health` – Lightweight readiness probe that returns `{"status": "ok"}`.
 - `GET /auth/login` – Redirects the browser to the external OAuth provider
@@ -66,6 +70,7 @@ ai_chat_service/
   ```
 
 ## Authentication Flow
+
 1. `/auth/login` redirects the user to Google's OAuth consent screen using
    client settings from `ai_chat_service.settings`.
 2. `/auth/callback` exchanges the returned `code` for tokens, fetches the
@@ -76,6 +81,7 @@ ai_chat_service/
 4. `/auth/logout` deletes the session cookie and redirects users back to the docs UI.
 
 ## Running the Service
+
 ```bash
 uv run uvicorn ai_chat_service.main:app --reload
 curl -H "Cookie: session_token=<token>" \
@@ -85,11 +91,13 @@ curl -H "Cookie: session_token=<token>" \
 ```
 
 Configure the following environment variables before launching:
+
 - `ai_chat_service.settings`: `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`,
   `SESSION_SECRET_KEY`, and optional overrides (`OAUTH_REDIRECT_URI`, etc.).
-- `claude_chat_impl.settings`: `ANTHROPIC_API_KEY` (required by the Claude client).
+- `claude_chat_impl.settings`: `CLAUDE_API_KEY` (required by the Claude client).
 
 ## Testing
+
 ```bash
 uv run pytest src/ai_chat_service/tests -q
 ```

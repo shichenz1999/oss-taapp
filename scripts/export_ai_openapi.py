@@ -14,7 +14,7 @@ import os
 from fastapi.openapi.utils import get_openapi
 
 # Provide minimal dummy settings so importing the app does not fail
-os.environ.setdefault("ANTHROPIC_API_KEY", "dummy")
+os.environ.setdefault("CLAUDE_API_KEY", "dummy")
 os.environ.setdefault("OAUTH_CLIENT_ID", "dummy")
 os.environ.setdefault("OAUTH_CLIENT_SECRET", "dummy")
 os.environ.setdefault("SESSION_SECRET_KEY", "dummy")

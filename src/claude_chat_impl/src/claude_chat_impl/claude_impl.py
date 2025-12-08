@@ -13,7 +13,7 @@ from ai_chat_api import AIInterface, AIStructuredResponse
 
 from .settings import settings
 
-claude_client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+claude_client = anthropic.Anthropic(api_key=settings.CLAUDE_API_KEY)
 
 
 def _should_request_json(response_schema: dict[str, Any] | None) -> bool:

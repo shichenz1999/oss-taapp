@@ -1,11 +1,13 @@
 # Claude Chat Implementation
 
 ## Overview
+
 `claude_chat_impl` supplies the Anthropic-backed implementation of the
 `ai_chat_api` contract. Importing the package registers Claude as the active chat
 provider so services can call Anthropic without dealing with SDK details.
 
 ## Responsibilities
+
 - Register `ClaudeClient` as the current `ai_chat_api.get_ai_interface` factory.
 - Convert Anthropic SDK responses into structured `AIStructuredResponse`
   payloads when needed.
@@ -13,6 +15,7 @@ provider so services can call Anthropic without dealing with SDK details.
   consistent source.
 
 ## Key Modules
+
 ```
 claude_chat_impl/
 ├── README.md                                # Package guide (this file)
@@ -35,12 +38,14 @@ claude_chat_impl/
   `pydantic-settings`. Reads values from `.env` or the process at runtime.
 
 ## Environment Configuration
+
 Provide the following environment variable (or set it in a `.env` file) so
 `AppSettings` can hydrate correctly:
 
-- `ANTHROPIC_API_KEY` – Claude API key for calling the Anthropic SDK.
+- `CLAUDE_API_KEY` – Claude API key for calling the Anthropic SDK.
 
 ## Usage
+
 ```python
 import claude_chat_impl  # registers the Claude implementation
 from ai_chat_api import get_ai_interface
@@ -58,6 +63,7 @@ chat client factory is registered automatically. Tests can override
 `ai_chat_api.get_ai_interface` as needed for isolated scenarios.
 
 ## Testing
+
 ```bash
 uv run pytest src/claude_chat_impl/tests -q
 ```

@@ -4,7 +4,7 @@
 import os
 
 _DEFAULT_ENV = {
-    "ANTHROPIC_API_KEY": "test-claude-key",
+    "CLAUDE_API_KEY": "test-claude-key",
 }
 
 

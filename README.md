@@ -74,6 +74,7 @@ uv run mkdocs serve            # Live docs at http://127.0.0.1:8000
 ## HW1 – Mail Client Platform
 
 ### Goal
+
 Establish a reusable email client architecture with clean abstractions and a Gmail-backed implementation. Core packages:
 
 - `mail_client_api`: Abstract `Client` + `Message` contracts and factory hook.
@@ -83,14 +84,14 @@ Establish a reusable email client architecture with clean abstractions and a Gma
 
 ### Required Credentials
 
-| Variable / File        | Purpose                                    |
-|------------------------|--------------------------------------------|
-| `.env`                 | Optional helper to store Gmail variables   |
-| `credentials.json`     | OAuth client secrets from Google Cloud     |
-| `token.json`           | Generated after the initial OAuth flow     |
-| `GMAIL_CLIENT_ID`      | Alternative to `credentials.json`          |
-| `GMAIL_CLIENT_SECRET`  | Alternative to `credentials.json`          |
-| `GMAIL_REFRESH_TOKEN`  | Refresh token for service accounts/CI      |
+| Variable / File       | Purpose                                  |
+| --------------------- | ---------------------------------------- |
+| `.env`                | Optional helper to store Gmail variables |
+| `credentials.json`    | OAuth client secrets from Google Cloud   |
+| `token.json`          | Generated after the initial OAuth flow   |
+| `GMAIL_CLIENT_ID`     | Alternative to `credentials.json`        |
+| `GMAIL_CLIENT_SECRET` | Alternative to `credentials.json`        |
+| `GMAIL_REFRESH_TOKEN` | Refresh token for service accounts/CI    |
 
 ### Running the Demonstration Script
 
@@ -107,6 +108,7 @@ This launches the legacy CLI demo that fetches recent messages via the Gmail API
    uv run python -m mail_client_service.main
    ```
 2. Use the adapter in client code:
+
    ```python
    import mail_client_api
    import mail_client_adapter
@@ -132,6 +134,7 @@ Pytest markers such as `integration`, `e2e`, and `local_credentials` let you tar
 ## HW2 – Claude Chat Service
 
 ### Goal
+
 Deliver a minimal Claude-powered chat microservice with OAuth-protected access. Core packages:
 
 - `ai_chat_api`: Abstract interface + dataclass message model.
@@ -144,7 +147,7 @@ Deliver a minimal Claude-powered chat microservice with OAuth-protected access. 
 Place the following in `.env` (the settings loader walks parent directories to find it):
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-...                               # used by claude_chat_impl
+CLAUDE_API_KEY=sk-ant-...                               # used by claude_chat_impl
 OAUTH_CLIENT_ID=your-google-client-id                      # used by ai_chat_service
 OAUTH_CLIENT_SECRET=your-google-client-secret              # used by ai_chat_service
 SESSION_SECRET_KEY=long-random-string                      # used by ai_chat_service
