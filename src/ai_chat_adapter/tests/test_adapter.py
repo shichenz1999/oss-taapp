@@ -27,7 +27,7 @@ def test_generate_response_success() -> None:
     mock_client.get_httpx_client.return_value = httpx_client
     http_response = DummyResponse(
         status_code=HTTPStatus.OK,
-        payload={"intent": "ticket.create", "parameters": {"title": "hello user"}},
+        payload={"intent": "create_ticket", "message": "Ticket created", "parameters": {"title": "hello user"}},
     )
     httpx_client.request.return_value = http_response
 
@@ -39,7 +39,8 @@ def test_generate_response_success() -> None:
     )
 
     assert isinstance(result, AIStructuredResponse)
-    assert result.intent == "ticket.create"
+    assert result.intent == "create_ticket"
+    assert result.message == "Ticket created"
     assert result.parameters["title"] == "hello user"
     httpx_client.request.assert_called_once()
     args, kwargs = httpx_client.request.call_args

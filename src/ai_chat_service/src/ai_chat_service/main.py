@@ -94,4 +94,4 @@ async def send_chat_message(
     if isinstance(response, AIStructuredResponse):
         return response
 
-    return AIStructuredResponse(intent="message", parameters={"response": response})
+    return AIStructuredResponse(intent="chat", message=str(response), parameters={})

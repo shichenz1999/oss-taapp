@@ -2,15 +2,16 @@
 
 ## Overview
 `ai_chat_api` captures the minimal interface that every AI chat backend must
-implement to plug into the OSS TA application. It standardises the message
-shape, exposes a factory hook for dependency injection, and keeps the rest of
-the system decoupled from provider-specific SDKs.
+implement to plug into the OSS TA application. It standardises the structured
+response shape, exposes a factory hook for dependency injection, and keeps the
+rest of the system decoupled from provider-specific SDKs.
 
 ## Responsibilities
-- Define the `Client` contract that orchestrates single-turn prompt/response flows.
-- Describe the `Message` abstraction consumed by downstream services.
-- Expose overridable factories (`get_client`, `get_message`) so concrete
-  implementations can register themselves at import time.
+- Define the `AIInterface` contract that orchestrates prompt/response flows.
+- Provide the `AIStructuredResponse` model for JSON-shaped outputs (with
+  strict intents and a user-facing message).
+- Expose an overridable factory (`get_ai_interface`) so concrete implementations
+  can register themselves at import time.
 - Supply a small test suite that guards the public surface and expectations.
 
 ## Key Modules
@@ -19,59 +20,52 @@ ai_chat_api/
 ├── README.md                                # Package guide (this file)
 ├── pyproject.toml                           # Build metadata and dependencies
 ├── src/ai_chat_api/
-│   ├── __init__.py                          # Re-exports + factory placeholders
-│   ├── client.py                            # `Client` ABC and `get_client` hook
-│   └── message.py                           # `Message` ABC and `get_message` hook
+│   ├── __init__.py                          # Re-exports + factory placeholder
+│   └── ai_chat_api.py                       # `AIInterface` ABC and response model
 └── tests/
     └── test_ai_chat_api.py                  # Contract-focused regression tests
 ```
 
-- `src/ai_chat_api/__init__.py` – Presents the public API (`Client`, `Message`,
-  and factory references) and allows implementations to mutate the factories.
-- `src/ai_chat_api/client.py` – Houses the abstract client definition that
-  providers subclass before binding `get_client`.
-- `src/ai_chat_api/message.py` – Captures the assistant message contract and
-  the companion `get_message` factory.
+- `src/ai_chat_api/__init__.py` – Presents the public API (`AIInterface`,
+  `AIStructuredResponse`, and factory reference) and allows implementations to
+  mutate the factory.
+- `src/ai_chat_api/ai_chat_api.py` – Houses the abstract interface definition
+  and structured response model.
 - `src/ai_chat_api/tests/test_ai_chat_api.py` – Exercises basic import and
   contract behaviour so regressions are surfaced quickly.
 
 ## Interface Contracts
-- **Client.send_message(prompt, user_id)** – Synchronous call that receives a
-  human prompt and returns a provider-specific `Message`. Implementations should
-  handle retries, tracing, and telemetry before returning.
-- **get_client() -> Client** – Factory method swapped at runtime (e.g. by
-  `claude_chat_impl.register()`) to deliver the active client instance or
-  dependency-injected copy.
-- **Message.role / Message.content** – Read-only properties that expose the
-  assistant's role label and textual body. Implementations may store additional
-  metadata but the interface guarantees these accessors.
-- **get_message(role, content) -> Message** – Companion factory that lets other
-  layers create message objects without coupling to a concrete class.
+- **AIInterface.generate_response(user_input, system_prompt, response_schema=None)**
+  – Synchronous call that receives a human prompt and returns either free text
+  (string) or an `AIStructuredResponse` when structured output is requested.
+- **AIStructuredResponse** – Pydantic model with `intent: Literal[...]`,
+  `message: str`, and `parameters: dict[str, Any]` for JSON action payloads.
+- **get_ai_interface() -> AIInterface** – Factory method swapped at runtime
+  (e.g. by `claude_chat_impl.register()`) to deliver the active implementation
+  or dependency-injected copy.
 
 ## Example Usage
 ```python
-from ai_chat_api import Client
+from ai_chat_api import AIInterface, get_ai_interface, AIStructuredResponse
 
-def trigger_prompt(api_client: Client, prompt: str, user_id: str) -> str:
-    message = api_client.send_message(prompt=prompt, user_id=user_id)
-    return f"{message.role}: {message.content}"
-```
+def trigger_prompt(api_client: AIInterface, prompt: str) -> str:
+    reply = api_client.generate_response(
+        user_input=prompt,
+        system_prompt="You are a helpful assistant.",
+    )
+    if isinstance(reply, AIStructuredResponse):
+        return f"{reply.intent}: {reply.parameters}"
+    return reply
 
-Most services import `get_client` so the active implementation can be swapped
-for tests:
-
-```python
-from ai_chat_api import get_client
-
-chat_client = get_client()
-reply = chat_client.send_message(prompt="Summarise the syllabus", user_id="user-123")
+chat_client = get_ai_interface()
+print(trigger_prompt(chat_client, "Summarise the syllabus"))
 ```
 
 ## Implementing a Provider
-1. Subclass `ai_chat_api.Client` and implement `send_message`.
-2. Provide a concrete `Message` class that honours `role` and `content`.
-3. Expose a module-level `register()` that rebinds `ai_chat_api.get_client` and,
-   optionally, `ai_chat_api.get_message`.
+1. Subclass `ai_chat_api.AIInterface` and implement `generate_response`.
+2. Return strings for conversational responses or `AIStructuredResponse` for
+   structured JSON outputs.
+3. Expose a module-level `register()` that rebinds `ai_chat_api.get_ai_interface`.
 4. Ensure the registration hook runs on import so dependent services can simply
    `import your_impl`.
 

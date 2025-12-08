@@ -16,9 +16,9 @@ from .settings import settings
 claude_client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
-def _should_request_json(user_input: str, response_schema: dict[str, Any] | None) -> bool:
+def _should_request_json(response_schema: dict[str, Any] | None) -> bool:
     """Determine whether we should coerce Claude to emit JSON."""
-    return response_schema is not None or "ticket" in user_input.lower()
+    return response_schema is not None
 
 
 def _format_system_prompt(
@@ -32,7 +32,7 @@ def _format_system_prompt(
         schema_text = json.dumps(response_schema)
         sections.append(f"Use the following JSON schema for your reply: {schema_text}")
     if require_json:
-        sections.append("Reply in JSON format.")
+        sections.append("You must output valid JSON only. No Markdown. No pre-amble.")
     return "\n".join(sections)
 
 
@@ -46,7 +46,7 @@ class ClaudeClient(AIInterface):
         response_schema: dict[str, Any] | None = None,
     ) -> str | AIStructuredResponse:
         """Send a prompt and return either free text or a structured response."""
-        require_json = _should_request_json(user_input, response_schema)
+        require_json = _should_request_json(response_schema)
         formatted_prompt = _format_system_prompt(system_prompt, require_json, response_schema)
 
         api_response: Any = claude_client.messages.create(

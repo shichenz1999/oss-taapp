@@ -25,16 +25,24 @@ class DummyAI(AIInterface):
     ) -> str | AIStructuredResponse:
         self.calls.append((user_input, system_prompt, response_schema))
         if response_schema is not None:
-            return AIStructuredResponse(intent="ticket.create", parameters={"title": user_input})
+            return AIStructuredResponse(
+                intent="create_ticket",
+                message=f"Created ticket for {user_input}",
+                parameters={"title": user_input},
+            )
         return f"{system_prompt}: {user_input}"
 
 
 def test_structured_response_model_round_trips() -> None:
     """Structured model preserves intent and parameters."""
-    response = AIStructuredResponse(intent="ticket.update", parameters={"id": 42, "status": "open"})
+    response = AIStructuredResponse(
+        intent="get_tickets",
+        message="Here are your tickets",
+        parameters={"status": "open"},
+    )
 
-    assert response.intent == "ticket.update"
-    assert response.parameters["id"] == 42
+    assert response.intent == "get_tickets"
+    assert response.message == "Here are your tickets"
     assert response.parameters["status"] == "open"
 
 
@@ -46,7 +54,8 @@ def test_generate_response_contract_accepts_schema() -> None:
     result = ai.generate_response(user_input="hello", system_prompt="assist", response_schema=schema)
 
     assert isinstance(result, AIStructuredResponse)
-    assert result.intent == "ticket.create"
+    assert result.intent == "create_ticket"
+    assert result.message.startswith("Created ticket")
     assert ai.calls == [("hello", "assist", schema)]
 
 

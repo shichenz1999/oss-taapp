@@ -110,7 +110,11 @@ def test_chat_endpoint_with_valid_token(client: TestClient, mocker: MockerFixtur
         "claude_chat_impl.claude_impl.claude_client.messages.create",
         return_value=SimpleNamespace(
             role="assistant",
-            content=[SimpleNamespace(text='{"intent":"ticket.create","parameters":{"title":"Patched reply"}}')],
+            content=[
+                SimpleNamespace(
+                    text='{"intent":"create_ticket","message":"Ticket created","parameters":{"title":"Patched reply"}}',
+                )
+            ],
         ),
     )
     token = create_session_token("user@example.com")
@@ -129,7 +133,11 @@ def test_chat_endpoint_with_valid_token(client: TestClient, mocker: MockerFixtur
         client.cookies.clear()
 
     assert response.status_code == 200
-    assert response.json() == {"intent": "ticket.create", "parameters": {"title": "Patched reply"}}
+    assert response.json() == {
+        "intent": "create_ticket",
+        "message": "Ticket created",
+        "parameters": {"title": "Patched reply"},
+    }
 
 
 def test_chat_endpoint_returns_ai_message(
@@ -153,7 +161,7 @@ def test_chat_endpoint_returns_ai_message(
             response_schema: dict[str, object] | None = None,
         ) -> str | AIStructuredResponse:
             _ = (user_input, system_prompt, response_schema)
-            return AIStructuredResponse(intent="message", parameters={"response": "Mocked reply"})
+            return AIStructuredResponse(intent="chat", message="Mocked reply", parameters={})
 
     app.dependency_overrides[get_ai_interface] = lambda: _DummyClient()
 
@@ -169,4 +177,4 @@ def test_chat_endpoint_returns_ai_message(
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json() == {"intent": "message", "parameters": {"response": "Mocked reply"}}
+    assert response.json() == {"intent": "chat", "message": "Mocked reply", "parameters": {}}

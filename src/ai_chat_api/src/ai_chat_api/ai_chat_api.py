@@ -3,18 +3,25 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-__all__ = ["AIInterface", "AIStructuredResponse", "get_ai_interface"]
+__all__ = ["AIInterface", "AIStructuredResponse", "IntentType", "get_ai_interface"]
+
+# 1. Define strict intents (Single Source of Truth)
+IntentType = Literal["create_ticket", "get_tickets", "chat", "unknown"]
 
 
 class AIStructuredResponse(BaseModel):
-    """Structured AI response capturing an action intent and its parameters."""
+    """Structured AI response capturing an action intent, parameters, and a user-facing message."""
 
-    intent: str
-    parameters: dict[str, Any] = Field(default_factory=dict)
+    intent: IntentType = Field(..., description="The detected intent (must be one of the allowed types).")
+
+    # 2. Add this missing field
+    message: str = Field(..., description="The conversational response text to be shown to the user.")
+
+    parameters: dict[str, Any] = Field(default_factory=dict, description="Parameters extracted for the action.")
 
 
 class AIInterface(ABC):

@@ -48,7 +48,11 @@ def test_ai_chat_stack_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
     base_url = "http://testserver"
     claude_response = SimpleNamespace(
         role="assistant",
-        content=[SimpleNamespace(text='{"intent":"ticket.create","parameters":{"title":"E2E reply"}}')],
+        content=[
+            SimpleNamespace(
+                text='{"intent":"create_ticket","message":"Ticket created","parameters":{"title":"E2E reply"}}',
+            )
+        ],
     )
 
     monkeypatch.setattr(
@@ -76,7 +80,8 @@ def test_ai_chat_stack_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
                 response_schema={"type": "object"},
             )
 
-        assert message.intent == "ticket.create"
+        assert message.intent == "create_ticket"
+        assert message.message == "Ticket created"
         assert message.parameters["title"] == "E2E reply"
     finally:
         ai_chat_api.get_ai_interface = previous_factory

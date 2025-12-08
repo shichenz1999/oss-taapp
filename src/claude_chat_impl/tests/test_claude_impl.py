@@ -11,7 +11,7 @@ def test_generate_response_returns_structured_payload(mocker):
     mock_client = MagicMock()
     mock_response = MagicMock()
     mock_content = MagicMock()
-    mock_content.text = '{"intent":"ticket.create","parameters":{"title":"mocked"}}'
+    mock_content.text = '{"intent":"create_ticket","message":"Ticket created","parameters":{"title":"mocked"}}'
     mock_response.content = [mock_content]
     mock_client.messages.create.return_value = mock_response
 
@@ -25,7 +25,8 @@ def test_generate_response_returns_structured_payload(mocker):
     )
 
     assert isinstance(response, AIStructuredResponse)
-    assert response.intent == "ticket.create"
+    assert response.intent == "create_ticket"
+    assert response.message == "Ticket created"
     assert response.parameters["title"] == "mocked"
 
     mock_client.messages.create.assert_called_once_with(
@@ -34,7 +35,7 @@ def test_generate_response_returns_structured_payload(mocker):
         system=ANY,
         messages=[{"role": "user", "content": "Create a ticket please"}],
     )
-    assert "Reply in JSON format." in mock_client.messages.create.call_args.kwargs["system"]
+    assert "You must output valid JSON only. No Markdown. No pre-amble." in mock_client.messages.create.call_args.kwargs["system"]
 
 
 def test_generate_response_allows_plain_text_when_not_json(mocker):
