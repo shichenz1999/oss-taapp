@@ -1,12 +1,13 @@
 """Tests for the simplified AI chat FastAPI service."""
 
-from typing import Any, Iterator
+from typing import Any
+from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
 
-from ai_chat_api import AIInterface, get_ai_interface
-from ai_chat_service import app
+from ai_chat_api import AIInterface
+from ai_chat_service.main import app, get_ai_interface
 
 
 class _DummyInterface(AIInterface):
@@ -23,7 +24,8 @@ class _DummyInterface(AIInterface):
         response_schema: dict[str, Any] | None = None,
     ) -> str | dict[str, Any]:
         if self._raise_error:
-            raise ValueError("boom")
+            boom_message = "boom"
+            raise ValueError(boom_message)
         return self._response
 
 

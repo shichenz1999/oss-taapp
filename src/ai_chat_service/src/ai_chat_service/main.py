@@ -6,9 +6,15 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel
 
 import claude_chat_impl  # noqa: F401  # ensure AI implementation registers itself
-from ai_chat_api import AIInterface, get_ai_interface
+from ai_chat_api import AIInterface
+from ai_chat_api import get_ai_interface as _get_ai_interface
 
 app = FastAPI()
+
+
+def get_ai_interface() -> AIInterface:
+    """Expose the currently registered AI interface factory to FastAPI."""
+    return _get_ai_interface()
 
 
 class ChatRequest(BaseModel):

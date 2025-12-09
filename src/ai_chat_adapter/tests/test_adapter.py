@@ -15,13 +15,15 @@ if TYPE_CHECKING:
     from ai_chat_service_client.models.chat_request import ChatRequest as ServiceChatRequest
 
 
-def test_generate_response_success(monkeypatch) -> None:
+def test_generate_response_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Adapter should translate request/response and surface the service payload."""
     mock_client = Mock(name="service_client")
     captured: dict[str, Any] = {}
     service_response = ChatResponse(response={"text": "hello user"})
 
-    def fake_sync_detailed(*, client, body):
+    def fake_sync_detailed(
+        *, client: Mock, body: ServiceChatRequest
+    ) -> Response[ChatResponse | HTTPValidationError]:
         captured["client"] = client
         captured["body"] = body
         return Response(
@@ -51,10 +53,10 @@ def test_generate_response_success(monkeypatch) -> None:
     assert body.response_schema == {"type": "object"}
 
 
-def test_generate_response_raises_on_http_error(monkeypatch) -> None:
+def test_generate_response_raises_on_http_error(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_client = Mock(name="service_client")
 
-    def _http_error(*, client, body):
+    def _http_error(*, client: Mock, body: object) -> Response[ChatResponse | HTTPValidationError]:
         _ = (client, body)
         return Response(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -74,10 +76,12 @@ def test_generate_response_raises_on_http_error(monkeypatch) -> None:
         adapter.generate_response(user_input="hello world")
 
 
-def test_generate_response_raises_on_validation_error(monkeypatch) -> None:
+def test_generate_response_raises_on_validation_error(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_client = Mock(name="service_client")
 
-    def _validation_error(*, client, body):
+    def _validation_error(
+        *, client: Mock, body: object
+    ) -> Response[ChatResponse | HTTPValidationError]:
         _ = (client, body)
         return Response(
             status_code=HTTPStatus.OK,

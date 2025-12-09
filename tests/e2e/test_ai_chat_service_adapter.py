@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anyio
 import httpx
 import pytest
-from starlette.types import ASGIApp
 
 import ai_chat_api
 from ai_chat_api import AIInterface
@@ -17,6 +16,9 @@ from ai_chat_service_client.api.chat import send_chat_message_chat_post
 from ai_chat_service_client.client import Client
 from ai_chat_service_client.models.chat_request import ChatRequest
 from ai_chat_service_client.models.chat_response import ChatResponse
+
+if TYPE_CHECKING:  # pragma: no cover
+    from starlette.types import ASGIApp
 
 pytestmark = [pytest.mark.e2e, pytest.mark.circleci]
 

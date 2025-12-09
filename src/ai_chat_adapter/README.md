@@ -62,7 +62,7 @@ ai_chat_adapter/
   ```
 
 ## Notes
-- `src/ai_chat_service_api_client/fast_api_client` is generated from OpenAPI and
+- `src/ai_chat_service_client/src/ai_chat_service_client` is generated from OpenAPI and
   treated purely as a dependency. It is already omitted from mypy and coverage
   in `pyproject.toml`.
 - When adding new features that require additional fields from the service,

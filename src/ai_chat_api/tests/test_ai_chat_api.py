@@ -27,7 +27,7 @@ class DummyAIInterface(AIInterface):
             return f"{prefix}: {user_input}"
 
         properties = response_schema.get("properties", {})
-        return {name: user_input for name in properties}
+        return dict.fromkeys(properties, user_input)
 
 
 def test_generate_response_returns_text_without_schema() -> None:
@@ -69,6 +69,7 @@ def test_generate_response_handles_missing_system_prompt() -> None:
 
     response = interface.generate_response(user_input="Status update?", system_prompt=None)
 
+    assert isinstance(response, str)
     assert response.startswith("assistant:")
     assert "Status update?" in response
 

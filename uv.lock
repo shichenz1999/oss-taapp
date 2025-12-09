@@ -11,11 +11,13 @@ members = [
     "ai-chat-adapter",
     "ai-chat-api",
     "ai-chat-service",
+    "ai-chat-service-client",
     "claude-chat-impl",
     "gmail-client-impl",
     "mail-client-adapter",
     "mail-client-api",
     "mail-client-service",
+    "mail-client-service-client",
     "ta-assignment",
 ]
 
@@ -69,6 +71,32 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.111.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29.0" },
+]
+provides-extras = ["test"]
+
+[[package]]
+name = "ai-chat-service-client"
+version = "0.1.0"
+source = { editable = "src/ai_chat_service_client" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx" },
+    { name = "python-dateutil" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "pytest" },
+    { name = "pytest-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attrs", specifier = ">=22.2.0" },
+    { name = "httpx", specifier = ">=0.23.0,<0.29.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
+    { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.12.0" },
+    { name = "python-dateutil", specifier = ">=2.8.0" },
 ]
 provides-extras = ["test"]
 
@@ -782,6 +810,32 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'test'" },
     { name = "mail-client-api", editable = "src/mail_client_api" },
     { name = "pytest", marker = "extra == 'test'" },
+]
+provides-extras = ["test"]
+
+[[package]]
+name = "mail-client-service-client"
+version = "0.1.0"
+source = { editable = "src/mail_client_service_client" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx" },
+    { name = "python-dateutil" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "pytest" },
+    { name = "pytest-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attrs", specifier = ">=22.2.0" },
+    { name = "httpx", specifier = ">=0.23.0,<0.29.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
+    { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.12.0" },
+    { name = "python-dateutil", specifier = ">=2.8.0" },
 ]
 provides-extras = ["test"]
 

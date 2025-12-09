@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anyio
 import httpx
 import pytest
-from starlette.types import ASGIApp
 
 import ai_chat_adapter
 import ai_chat_api
@@ -19,6 +18,9 @@ from ai_chat_service.main import app
 pytestmark = [pytest.mark.integration, pytest.mark.circleci]
 
 BASE_URL = "http://testserver"
+
+if TYPE_CHECKING:  # pragma: no cover
+    from starlette.types import ASGIApp
 
 
 class _StubAI(AIInterface):

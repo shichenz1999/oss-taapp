@@ -1,8 +1,9 @@
 """Anthropic-backed implementation of the ai_chat_api.AIInterface contract."""
+
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any, cast
 
 import anthropic
 
@@ -21,8 +22,8 @@ class ClaudeAIInterface(AIInterface):
         self,
         user_input: str,
         system_prompt: str | None = None,
-        response_schema: Dict[str, Any] | None = None,
-    ) -> str | Dict[str, Any]:
+        response_schema: dict[str, Any] | None = None,
+    ) -> str | dict[str, Any]:
         """Invoke Claude and return raw text or structured JSON."""
         directives: list[str] = []
         if system_prompt:
@@ -37,9 +38,7 @@ class ClaudeAIInterface(AIInterface):
 
         system_text = "\n\n".join(directives) if directives else None
 
-        messages = [
-            {"role": "user", "content": user_input}
-        ]
+        messages = [{"role": "user", "content": user_input}]
 
         request_kwargs: dict[str, Any] = {
             "model": "claude-3-haiku-20240307",
@@ -51,14 +50,19 @@ class ClaudeAIInterface(AIInterface):
 
         api_response = claude_client.messages.create(**request_kwargs)
 
-        content = api_response.content[0].text.strip()
+        content = cast("str", api_response.content[0].text).strip()
         if response_schema is None:
             return content
 
         try:
-            return json.loads(content)
+            parsed = json.loads(content)
         except json.JSONDecodeError as exc:
-            raise ValueError("Claude returned invalid JSON for the provided schema") from exc
+            invalid_json_message = "Claude returned invalid JSON for the provided schema"
+            raise ValueError(invalid_json_message) from exc
+        if not isinstance(parsed, dict):
+            invalid_json_message = "Claude returned data that does not match the expected schema"
+            raise TypeError(invalid_json_message)
+        return cast("dict[str, Any]", parsed)
 
 
 def get_ai_interface_impl() -> ClaudeAIInterface:

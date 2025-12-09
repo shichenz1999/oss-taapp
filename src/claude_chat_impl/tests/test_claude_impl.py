@@ -29,12 +29,12 @@ def test_generate_response_returns_text(mocker: Any) -> None:
     result = interface.generate_response(user_input="Hello Claude")
 
     assert result == "Mock reply"
-    mock_client.messages.create.assert_called_once_with(
-        model="claude-3-haiku-20240307",
-        max_tokens=1024,
-        system=None,
-        messages=[{"role": "user", "content": "Hello Claude"}],
-    )
+    mock_client.messages.create.assert_called_once()
+    assert mock_client.messages.create.call_args.kwargs == {
+        "model": "claude-3-haiku-20240307",
+        "max_tokens": 1024,
+        "messages": [{"role": "user", "content": "Hello Claude"}],
+    }
 
 
 def test_generate_response_returns_structured_payload(mocker: Any) -> None:

@@ -3,17 +3,22 @@
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
-from ai_chat_api import AIInterface
 from ai_chat_service_client.api.chat import send_chat_message_chat_post
 from ai_chat_service_client.client import Client as ServiceClient
 from ai_chat_service_client.models.chat_request import ChatRequest
 from ai_chat_service_client.models.chat_response import ChatResponse
 from ai_chat_service_client.models.http_validation_error import HTTPValidationError
-from ai_chat_service_client.types import Response, UNSET
+from ai_chat_service_client.types import UNSET, Response
 
-__all__ = ["AiChatAdapter"]
+from ai_chat_api import AIInterface
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+__all__ = ["AiChatAdapter", "build_service_client"]
+
 
 class AiChatAdapter(AIInterface):
     """Concrete ai_chat_api implementation that proxies requests to the FastAPI service."""
@@ -40,7 +45,7 @@ class AiChatAdapter(AIInterface):
 
     def _extract_response(
         self,
-        response: "Response[ChatResponse | HTTPValidationError]",
+        response: Response[ChatResponse | HTTPValidationError],
     ) -> str | dict[str, Any]:
         if response.status_code != HTTPStatus.OK:
             error = f"Chat service returned unexpected status {response.status_code}: {response.content!r}"
@@ -48,12 +53,22 @@ class AiChatAdapter(AIInterface):
 
         parsed = response.parsed
         if parsed is None:
-            raise RuntimeError("Chat service returned an empty body.")
+            empty_body_message = "Chat service returned an empty body."
+            raise RuntimeError(empty_body_message)
         if isinstance(parsed, HTTPValidationError):
-            raise TypeError(f"Chat service validation error: {parsed.to_dict()}")
+            validation_error_message = f"Chat service validation error: {parsed.to_dict()}"
+            raise TypeError(validation_error_message)
         if not isinstance(parsed, ChatResponse):
-            raise TypeError(f"Unexpected chat response type: {type(parsed)}")
+            unexpected_type_message = f"Unexpected chat response type: {type(parsed)}"
+            raise TypeError(unexpected_type_message)
         result = parsed.response
         if hasattr(result, "to_dict"):
-            return result.to_dict()
-        return result
+            to_dict: Callable[[], dict[str, Any]] = result.to_dict
+            return to_dict()
+        return cast("str", result)
+
+
+
+def build_service_client(*, base_url: str) -> ServiceClient:
+    """Create a service client for the configured API endpoint."""
+    return ServiceClient(base_url=base_url)

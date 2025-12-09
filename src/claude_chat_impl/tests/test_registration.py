@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import importlib
 import sys
+from typing import TYPE_CHECKING
 
 import ai_chat_api
-import pytest
+
+if TYPE_CHECKING:  # pragma: no cover
+    import pytest
 
 
 def test_import_registers_factory(monkeypatch: pytest.MonkeyPatch) -> None:
