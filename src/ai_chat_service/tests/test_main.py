@@ -1,22 +1,36 @@
-"""Integration-style tests for the FastAPI AI chat service."""
+"""Tests for the simplified AI chat FastAPI service."""
 
-from collections.abc import Iterator
-from types import SimpleNamespace
+from typing import Any, Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from pytest_mock import MockerFixture
 
-from ai_chat_api import Message, get_client
-from ai_chat_service.auth_deps import create_session_token
-from ai_chat_service import app, auth_manager, get_current_user_id
+from ai_chat_api import AIInterface, get_ai_interface
+from ai_chat_service import app
+
+
+class _DummyInterface(AIInterface):
+    """Test double that returns configurable values."""
+
+    def __init__(self, response: str | dict[str, Any], *, raise_error: bool = False) -> None:
+        self._response = response
+        self._raise_error = raise_error
+
+    def generate_response(
+        self,
+        user_input: str,
+        system_prompt: str | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> str | dict[str, Any]:
+        if self._raise_error:
+            raise ValueError("boom")
+        return self._response
 
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    """Provide a TestClient with automatic teardown."""
-    with TestClient(app) as c:
-        yield c
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def test_health_endpoint_returns_ok(client: TestClient) -> None:
@@ -25,142 +39,47 @@ def test_health_endpoint_returns_ok(client: TestClient) -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_landing_redirects_to_docs(client: TestClient) -> None:
-    response = client.get("/", follow_redirects=False)
-
-    assert response.status_code == 308
-    assert response.headers["location"] == "/docs"
-
-
-def test_login_redirects_to_oauth_provider(client: TestClient, mocker: MockerFixture) -> None:
-    mocker.patch.object(auth_manager, "get_authorization_url", return_value="https://accounts.example.com/auth")
-
-    response = client.get("/auth/login", follow_redirects=False)
-
-    assert response.status_code == 307
-    assert response.headers["location"] == "https://accounts.example.com/auth"
-
-
-def test_auth_callback_sets_cookie_and_redirects(
-    client: TestClient,
-    mocker: MockerFixture,
-) -> None:
-    mocker.patch.object(auth_manager, "exchange_code_for_tokens", return_value={"access_token": "token-abc"})
-    mocker.patch.object(auth_manager, "get_user_info", return_value={"email": "user@example.com"})
-    mocker.patch("ai_chat_service.main.create_session_token", return_value="session-123")
-
-    response = client.get("/auth/callback?code=test-code", follow_redirects=False)
-
-    assert response.status_code == 307
-    assert response.headers["location"] == "/docs"
-    # TestClient stores cookies on the response object.
-    assert response.cookies.get("session_token") == "session-123"
-
-
-def test_auth_callback_with_error_returns_400(client: TestClient) -> None:
-    response = client.get("/auth/callback?error=access_denied", follow_redirects=False)
-
-    assert response.status_code == 400
-    assert response.json() == {"detail": "OAuth Error: access_denied"}
-
-
-def test_auth_callback_missing_code_returns_400(client: TestClient) -> None:
-    response = client.get("/auth/callback", follow_redirects=False)
-
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Missing 'code' query parameter"}
-
-
-def test_auth_callback_missing_access_token_returns_500(client: TestClient, mocker: MockerFixture) -> None:
-    mocker.patch.object(auth_manager, "exchange_code_for_tokens", return_value={})
-
-    response = client.get("/auth/callback?code=xyz", follow_redirects=False)
-
-    assert response.status_code == 500
-    assert response.json() == {"detail": "Could not retrieve access token"}
-
-
-def test_auth_callback_missing_user_identifier_returns_500(client: TestClient, mocker: MockerFixture) -> None:
-    mocker.patch.object(auth_manager, "exchange_code_for_tokens", return_value={"access_token": "token-abc"})
-    mocker.patch.object(auth_manager, "get_user_info", return_value={})
-
-    response = client.get("/auth/callback?code=xyz", follow_redirects=False)
-
-    assert response.status_code == 500
-    assert response.json() == {"detail": "Could not retrieve user identifier"}
-
-
-def test_logout_clears_session_cookie(client: TestClient) -> None:
-    response = client.get("/auth/logout", follow_redirects=False)
-
-    assert response.status_code == 307
-    assert response.headers["location"] == "/docs"
-    set_cookie_header = response.headers.get("set-cookie", "")
-    assert "session_token=" in set_cookie_header
-    assert "Max-Age=0" in set_cookie_header
-
-
-def test_chat_endpoint_requires_authentication(client: TestClient) -> None:
-    response = client.post("/chat", json={"prompt": "Hello"})
-    assert response.status_code == 401
-
-
-def test_chat_endpoint_with_valid_token(client: TestClient, mocker: MockerFixture) -> None:
-    mocker.patch(
-        "claude_chat_impl.claude_impl.claude_client.messages.create",
-        return_value=SimpleNamespace(
-            role="assistant",
-            content=[SimpleNamespace(text="Patched reply")],
-        ),
-    )
-    token = create_session_token("user@example.com")
-
-    client.cookies.set("session_token", token)
+def test_chat_endpoint_returns_text_response(client: TestClient) -> None:
+    app.dependency_overrides[get_ai_interface] = lambda: _DummyInterface("hello world")
     try:
-        response = client.post("/chat", json={"prompt": "Hi"})
-    finally:
-        client.cookies.clear()
-
-    assert response.status_code == 200
-    assert response.json() == {"role": "assistant", "content": "Patched reply"}
-
-
-def test_chat_endpoint_returns_ai_message(
-    client: TestClient,
-    mocker: MockerFixture,
-) -> None:
-    app.dependency_overrides[get_current_user_id] = lambda: "user@example.com"
-    mocker.patch(
-        "claude_chat_impl.claude_impl.claude_client.messages.create",
-        return_value=SimpleNamespace(
-            role="assistant",
-            content=[SimpleNamespace(text="Mocked reply")],
-        ),
-    )
-
-    class _DummyClient:
-        def send_message(self, prompt: str, user_id: str) -> Message:
-            return DummyMessage(role="assistant", content="Mocked reply")
-
-    app.dependency_overrides[get_client] = lambda: _DummyClient()
-
-    try:
-        response = client.post("/chat", json={"prompt": "Hi Claude"})
+        response = client.post("/chat", json={"user_input": "Hi"})
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json() == {"role": "assistant", "content": "Mocked reply"}
+    assert response.json() == {"response": "hello world"}
 
-class DummyMessage(Message):
-    def __init__(self, role: str, content: str) -> None:
-        self._role = role
-        self._content = content
 
-    @property
-    def role(self) -> str:
-        return self._role
+def test_chat_endpoint_supports_structured_response(client: TestClient) -> None:
+    payload = {
+        "text": "Review complete.",
+        "tools": [
+            {"name": "list_tickets", "args": {}},
+            {"name": "delete_ticket", "args": {"ticket_id": "A-102"}},
+        ],
+    }
+    app.dependency_overrides[get_ai_interface] = lambda: _DummyInterface(payload)
+    try:
+        response = client.post(
+            "/chat",
+            json={
+                "user_input": "Plan tomorrow",
+                "response_schema": {"type": "object"},
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
 
-    @property
-    def content(self) -> str:
-        return self._content
+    assert response.status_code == 200
+    assert response.json() == {"response": payload}
+
+
+def test_chat_endpoint_returns_502_on_value_error(client: TestClient) -> None:
+    app.dependency_overrides[get_ai_interface] = lambda: _DummyInterface("ignored", raise_error=True)
+    try:
+        response = client.post("/chat", json={"user_input": "Hi"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 502
+    assert response.json()["detail"].startswith("AI response could not be parsed")

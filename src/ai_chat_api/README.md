@@ -1,17 +1,16 @@
 # AI Chat API
 
 ## Overview
-`ai_chat_api` captures the minimal interface that every AI chat backend must
-implement to plug into the OSS TA application. It standardises the message
-shape, exposes a factory hook for dependency injection, and keeps the rest of
-the system decoupled from provider-specific SDKs.
+`ai_chat_api` defines the minimal contract that every AI provider must implement
+to plug into the OSS TA application. It exposes a single abstract interface,
+plus a factory hook that concrete backends override at import time.
 
 ## Responsibilities
-- Define the `Client` contract that orchestrates single-turn prompt/response flows.
-- Describe the `Message` abstraction consumed by downstream services.
-- Expose overridable factories (`get_client`, `get_message`) so concrete
-  implementations can register themselves at import time.
-- Supply a small test suite that guards the public surface and expectations.
+- Define the `AIInterface` abstraction that supports both conversational replies
+  and structured JSON responses.
+- Provide the `get_ai_interface()` factory placeholder that concrete packages
+  (e.g., `claude_chat_impl`) overwrite during registration.
+- Supply a regression test suite that guards the public interface.
 
 ## Key Modules
 ```
@@ -19,60 +18,63 @@ ai_chat_api/
 ├── README.md                                # Package guide (this file)
 ├── pyproject.toml                           # Build metadata and dependencies
 ├── src/ai_chat_api/
-│   ├── __init__.py                          # Re-exports + factory placeholders
-│   ├── client.py                            # `Client` ABC and `get_client` hook
-│   └── message.py                           # `Message` ABC and `get_message` hook
+│   ├── __init__.py                          # Re-exports + factory placeholder
+│   └── client.py                            # AIInterface ABC and factory
 └── tests/
     └── test_ai_chat_api.py                  # Contract-focused regression tests
 ```
 
-- `src/ai_chat_api/__init__.py` – Presents the public API (`Client`, `Message`,
-  and factory references) and allows implementations to mutate the factories.
-- `src/ai_chat_api/client.py` – Houses the abstract client definition that
-  providers subclass before binding `get_client`.
-- `src/ai_chat_api/message.py` – Captures the assistant message contract and
-  the companion `get_message` factory.
-- `src/ai_chat_api/tests/test_ai_chat_api.py` – Exercises basic import and
-  contract behaviour so regressions are surfaced quickly.
+- `src/ai_chat_api/__init__.py` – Presents the public API (`AIInterface` and
+  `get_ai_interface`) so consumers stay decoupled from concrete providers.
+- `src/ai_chat_api/client.py` – Houses the abstract definition of
+  `AIInterface.generate_response` and the default factory implementation, which
+  raises until an implementation registers itself.
+- `src/ai_chat_api/tests/test_ai_chat_api.py` – Exercises the contract so API
+  changes surface through failing tests.
 
-## Interface Contracts
-- **Client.send_message(prompt, user_id)** – Synchronous call that receives a
-  human prompt and returns a provider-specific `Message`. Implementations should
-  handle retries, tracing, and telemetry before returning.
-- **get_client() -> Client** – Factory method swapped at runtime (e.g. by
-  `claude_chat_impl.register()`) to deliver the active client instance or
-  dependency-injected copy.
-- **Message.role / Message.content** – Read-only properties that expose the
-  assistant's role label and textual body. Implementations may store additional
-  metadata but the interface guarantees these accessors.
-- **get_message(role, content) -> Message** – Companion factory that lets other
-  layers create message objects without coupling to a concrete class.
+## Interface Contract
+- **AIInterface.generate_response(user_input, system_prompt=None, response_schema=None)** – Returns either a
+  conversational `str` or a structured `dict[str, Any]` when a JSON schema is
+  provided.
+- **get_ai_interface() -> AIInterface** – Factory placeholder that concrete
+  implementations replace (e.g., via `claude_chat_impl.register()`).
 
 ## Example Usage
 ```python
-from ai_chat_api import Client
+from ai_chat_api import get_ai_interface
 
-def trigger_prompt(api_client: Client, prompt: str, user_id: str) -> str:
-    message = api_client.send_message(prompt=prompt, user_id=user_id)
-    return f"{message.role}: {message.content}"
+ai = get_ai_interface()
+reply = ai.generate_response(user_input="Summarise the syllabus")
+print(reply)
 ```
 
-Most services import `get_client` so the active implementation can be swapped
-for tests:
+Request a structured response by supplying a schema:
 
 ```python
-from ai_chat_api import get_client
+schema = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"},
+        "next_action": {"type": "string"},
+    },
+}
 
-chat_client = get_client()
-reply = chat_client.send_message(prompt="Summarise the syllabus", user_id="user-123")
+ai = get_ai_interface()
+structured = ai.generate_response(
+    user_input="Plan tomorrow's tasks",
+    system_prompt="Project planner",
+    response_schema=schema,
+)
+print(structured["summary"])
 ```
 
 ## Implementing a Provider
-1. Subclass `ai_chat_api.Client` and implement `send_message`.
-2. Provide a concrete `Message` class that honours `role` and `content`.
-3. Expose a module-level `register()` that rebinds `ai_chat_api.get_client` and,
-   optionally, `ai_chat_api.get_message`.
-4. Ensure the registration hook runs on import so dependent services can simply
+1. Subclass `ai_chat_api.AIInterface` and implement `generate_response`.
+2. Expose a factory (e.g., `get_ai_interface_impl`) that returns your concrete
+   implementation.
+3. Provide a module-level `register()` that rebinds `ai_chat_api.get_ai_interface`
+   to your factory.
+4. Ensure registration runs on import so dependent services can simply
    `import your_impl`.
 
 ## Testing
@@ -80,5 +82,5 @@ reply = chat_client.send_message(prompt="Summarise the syllabus", user_id="user-
 uv run pytest src/ai_chat_api/tests/test_ai_chat_api.py
 ```
 
-When adding new behaviours, extend the contract tests to keep consumers aligned
-on expectations.
+Extend the contract tests whenever the public interface grows to keep consumers
+aligned on expectations.

@@ -1,42 +1,71 @@
-# claude_chat_impl/src/claude_chat_impl/claude_impl.py
-"""Anthropic-backed implementation of the ai_chat_api.Client contract."""
-
+"""Anthropic-backed implementation of the ai_chat_api.AIInterface contract."""
 from __future__ import annotations
 
-from typing import Any
+import json
+from typing import Any, Dict
 
 import anthropic
 
 import ai_chat_api
-from ai_chat_api import Client, Message
+from ai_chat_api import AIInterface
 
-from .message_impl import anthropic_response_to_message
 from .settings import settings
 
 claude_client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
-class ClaudeClient(Client):
-    """Concrete chat client that proxies calls to Anthropic's Claude API."""
+class ClaudeAIInterface(AIInterface):
+    """Concrete AIInterface implementation that wraps Anthropic's Claude API."""
 
-    def send_message(self, prompt: str, user_id: str) -> Message:
-        """Send a single prompt and return the assistant's response."""
-        _ = user_id
+    def generate_response(
+        self,
+        user_input: str,
+        system_prompt: str | None = None,
+        response_schema: Dict[str, Any] | None = None,
+    ) -> str | Dict[str, Any]:
+        """Invoke Claude and return raw text or structured JSON."""
+        directives: list[str] = []
+        if system_prompt:
+            directives.append(system_prompt.strip())
 
-        api_response: Any = claude_client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        if response_schema is not None:
+            directives.append(
+                "You must return JSON that strictly conforms to the following schema:\n"
+                f"{json.dumps(response_schema)}\n"
+                "Do not include any extra text—only valid JSON."
+            )
 
-        return anthropic_response_to_message(api_response)
+        system_text = "\n\n".join(directives) if directives else None
+
+        messages = [
+            {"role": "user", "content": user_input}
+        ]
+
+        request_kwargs: dict[str, Any] = {
+            "model": "claude-3-haiku-20240307",
+            "max_tokens": 1024,
+            "messages": messages,
+        }
+        if system_text is not None:
+            request_kwargs["system"] = system_text
+
+        api_response = claude_client.messages.create(**request_kwargs)
+
+        content = api_response.content[0].text.strip()
+        if response_schema is None:
+            return content
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Claude returned invalid JSON for the provided schema") from exc
 
 
-def get_client_impl() -> ClaudeClient:
-    """Return a new ClaudeClient instance."""
-    return ClaudeClient()
+def get_ai_interface_impl() -> ClaudeAIInterface:
+    """Return a ClaudeAIInterface instance."""
+    return ClaudeAIInterface()
 
 
 def register() -> None:
-    """Register the Claude client factory with the ai_chat_api contract."""
-    ai_chat_api.get_client = get_client_impl
+    """Register the Claude AI interface factory with ai_chat_api."""
+    ai_chat_api.get_ai_interface = get_ai_interface_impl
