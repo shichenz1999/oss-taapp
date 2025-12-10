@@ -1,0 +1,6 @@
+# Render API key should be supplied via TF_VAR_render_api_key or a non-committed terraform.tfvars
+render_api_key = "rnd_xxx"
+render_owner_id = "usr-xxx"
+
+repo_url    = "https://github.com/shichenz1999/oss-taapp"
+repo_branch = "hw3-api-fix"
