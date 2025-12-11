@@ -36,3 +36,9 @@ credentials.json
 TESTING_STATUS.md
 
 .DS_Store
+
+# Terraform local files
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars

@@ -1,5 +1,6 @@
 """Unit tests for mail_client_service routes."""
 
+from collections.abc import Iterator
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -13,7 +14,7 @@ client = TestClient(app)
 
 
 @pytest.fixture
-def mock_client():
+def mock_client() -> Iterator[Mock]:
     """Fixture to mock the mail client dependency."""
     mock_client = Mock(spec=Client)
     app.dependency_overrides[get_mail_client] = lambda: mock_client
@@ -21,14 +22,14 @@ def mock_client():
     app.dependency_overrides.pop(get_mail_client, None)
 
 
-def test_get_mail_client_uses_cached_factory(monkeypatch):
+def test_get_mail_client_uses_cached_factory(monkeypatch: pytest.MonkeyPatch) -> None:
     """The service should cache the real client factory."""
     reset_client_cache()
 
     calls: list[bool] = []
     sentinel = object()
 
-    def fake_get_client(*, interactive: bool = False):
+    def fake_get_client(*, interactive: bool = False) -> object:
         calls.append(interactive)
         return sentinel
 
@@ -44,7 +45,7 @@ def test_get_mail_client_uses_cached_factory(monkeypatch):
     reset_client_cache()
 
 
-def test_list_messages_success(mock_client) -> None:
+def test_list_messages_success(mock_client: Mock) -> None:
     # ARRANGE
     messages = [
         SimpleNamespace(
@@ -90,7 +91,7 @@ def test_list_messages_success(mock_client) -> None:
     mock_client.get_messages.assert_called_once_with(max_results=2)
 
 
-def test_list_messages_failure(mock_client) -> None:
+def test_list_messages_failure(mock_client: Mock) -> None:
     # ARRANGE
     mock_client.get_messages.side_effect = RuntimeError("boom")
 
@@ -103,7 +104,7 @@ def test_list_messages_failure(mock_client) -> None:
     mock_client.get_messages.assert_called_once_with(max_results=10)
 
 
-def test_get_message_success(mock_client) -> None:
+def test_get_message_success(mock_client: Mock) -> None:
     # Message Object
     msg = SimpleNamespace(
         id="msg-1",
@@ -133,7 +134,7 @@ def test_get_message_success(mock_client) -> None:
     mock_client.get_message.assert_called_once_with("msg-1")
 
 
-def test_get_message_not_found(mock_client) -> None:
+def test_get_message_not_found(mock_client: Mock) -> None:
     # arrange
     mock_client.get_message.side_effect = ValueError("not found")
 
@@ -146,7 +147,7 @@ def test_get_message_not_found(mock_client) -> None:
     mock_client.get_message.assert_called_once_with("nonexistent")
 
 
-def test_mark_as_read_success(mock_client) -> None:
+def test_mark_as_read_success(mock_client: Mock) -> None:
     # ARRANGE
     mock_client.mark_as_read.return_value = True
     message_id = "msg_123"
@@ -160,7 +161,7 @@ def test_mark_as_read_success(mock_client) -> None:
     mock_client.mark_as_read.assert_called_once_with(message_id)
 
 
-def test_mark_as_read_failure(mock_client) -> None:
+def test_mark_as_read_failure(mock_client: Mock) -> None:
     # ARRANGE
     mock_client.mark_as_read.return_value = False
     message_id = "msg_123"
@@ -174,7 +175,7 @@ def test_mark_as_read_failure(mock_client) -> None:
     mock_client.mark_as_read.assert_called_once_with(message_id)
 
 
-def test_delete_message_success(mock_client) -> None:
+def test_delete_message_success(mock_client: Mock) -> None:
     # ARRANGE
     mock_client.delete_message.return_value = True
 
@@ -187,7 +188,7 @@ def test_delete_message_success(mock_client) -> None:
     mock_client.delete_message.assert_called_once_with("msg-123")
 
 
-def test_delete_message_failure(mock_client) -> None:
+def test_delete_message_failure(mock_client: Mock) -> None:
     # ARRANGE
     mock_client.delete_message.return_value = False
 

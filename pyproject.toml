@@ -32,16 +32,22 @@ members = [
   "src/mail_client_api",
   "src/gmail_client_impl",
   "src/mail_client_service",
+  "src/mail_client_service_client",
   "src/mail_client_adapter",
   "src/ai_chat_api",
-  "src/ai_chat_adapter",
   "src/claude_chat_impl",
   "src/ai_chat_service",
+  "src/ai_chat_service_client",
+  "src/ai_chat_adapter",
 ]
 
 [tool.ruff]
 line-length = 130 # high for top level due to tests
 target-version = "py311"
+extend-exclude = [
+    "src/mail_client_service_client/src/mail_client_service_client",
+    "src/ai_chat_service_client/src/ai_chat_service_client",
+]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -76,7 +82,6 @@ ignore = [
 strict = true
 explicit_package_bases = true # Required for src layout
 mypy_path = [
-    "src",
     "src/mail_client_api/src",
     "src/gmail_client_impl/src",
     "src/mail_client_service/src",
@@ -85,6 +90,10 @@ mypy_path = [
     "src/claude_chat_impl/src",
     "src/ai_chat_service/src",
     "src/ai_chat_adapter/src",
+]
+exclude = [
+    "src/mail_client_service_client/src/mail_client_service_client/.*",
+    "src/ai_chat_service_client/src/ai_chat_service_client/.*",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false
@@ -103,6 +112,14 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
+    "ai_chat_service_client.*",
+    "mail_client_service_client.*",
+]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = [
     "mail_client_adapter.tests.*",
     "mail_client_service.tests.*",
     "ai_chat_adapter.tests.*",
@@ -118,7 +135,6 @@ disallow_incomplete_defs = false
 [tool.pytest.ini_options]
 pythonpath = [
     ".", 
-    "src",
     "src/mail_client_api/src",
     "src/gmail_client_impl/src",
     "src/mail_client_service/src",
@@ -143,8 +159,8 @@ source = ["src"]
 omit = [
     "*/tests/*",
     "*/__main__.py",
-    "src/mail_client_service_client/fast_api_client/*",
-    "src/ai_chat_service_api_client/fast_api_client/*",
+    "src/mail_client_service_client/src/mail_client_service_client/*",
+    "src/ai_chat_service_client/src/ai_chat_service_client/*",
 ]
 
 [tool.coverage.report]

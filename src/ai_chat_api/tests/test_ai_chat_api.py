@@ -2,64 +2,99 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
-from ai_chat_api import Client, Message
+from ai_chat_api import AIInterface
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "src"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
 
-class DummyMessage(Message):
-    """Minimal concrete Message implementation for testing."""
+class DummyAIInterface(AIInterface):
+    """Concrete helper used to validate the AIInterface abstraction."""
 
-    def __init__(self, role: str, content: str) -> None:
-        if not isinstance(role, str) or not role:
-            error_message = "role must be a non-empty string"
-            raise ValueError(error_message)
-        self._role = role
-        self._content = str(content)
+    def generate_response(
+        self,
+        user_input: str,
+        system_prompt: str | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> str | dict[str, Any]:
+        if response_schema is None:
+            prefix = system_prompt.strip() if system_prompt else "assistant"
+            return f"{prefix}: {user_input}"
 
-    @property
-    def role(self) -> str:
-        return self._role
-
-    @property
-    def content(self) -> str:
-        return self._content
+        properties = response_schema.get("properties", {})
+        return dict.fromkeys(properties, user_input)
 
 
-def test_message_model_validates_role() -> None:
-    """A Message can be created with a role and content."""
-    message = DummyMessage(role="user", content="Hello, AI assistant!")
-    assert message.role == "user"
-    assert message.content == "Hello, AI assistant!"
+def test_generate_response_returns_text_without_schema() -> None:
+    """Implementations can return plain strings for conversational replies."""
+    interface = DummyAIInterface()
+
+    response = interface.generate_response(user_input="Hello!", system_prompt="Be helpful")
+
+    assert isinstance(response, str)
+    assert "Hello!" in response
+    assert "Be helpful" in response
 
 
-def test_message_model_rejects_invalid_role() -> None:
-    """The model raises when provided an unsupported role value."""
-    with pytest.raises(ValueError, match="non-empty string"):
-        DummyMessage(role="", content="nope")
+def test_generate_response_returns_structured_data_with_schema() -> None:
+    """Implementations can emit structured payloads when given a schema."""
+    interface = DummyAIInterface()
+    schema = {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "next_action": {"type": "string"},
+        },
+    }
 
-
-def test_abstract_api_send_message_contract() -> None:
-    """Implementations must return assistant messages from send_message."""
-    mock_api = Mock(spec=Client)
-    mock_api.send_message.return_value = DummyMessage(
-        role="assistant",
-        content="Here is your AI response.",
+    response = interface.generate_response(
+        user_input="Observe the lab results.",
+        system_prompt="Planner",
+        response_schema=schema,
     )
 
-    response = mock_api.send_message(prompt="Hello!", user_id="user-123")
-
-    mock_api.send_message.assert_called_once_with(prompt="Hello!", user_id="user-123")
-    assert response.role == "assistant"
-    assert response.content == "Here is your AI response."
+    assert isinstance(response, dict)
+    assert set(response.keys()) == {"summary", "next_action"}
+    assert response["summary"] == "Observe the lab results."
 
 
-def test_abstract_api_cannot_instantiate_directly() -> None:
+def test_generate_response_handles_missing_system_prompt() -> None:
+    """System prompt is optional and defaults to a sensible prefix."""
+    interface = DummyAIInterface()
+
+    response = interface.generate_response(user_input="Status update?", system_prompt=None)
+
+    assert isinstance(response, str)
+    assert response.startswith("assistant:")
+    assert "Status update?" in response
+
+
+def test_generate_response_contract_invocation() -> None:
+    """Consumers call generate_response with the expected signature."""
+    mock_interface = Mock(spec=AIInterface)
+    mock_interface.generate_response.return_value = "Acknowledged"
+    schema = {"type": "object", "properties": {"summary": {"type": "string"}}}
+
+    result = mock_interface.generate_response(
+        user_input="Draft a memo",
+        system_prompt="Corporate assistant",
+        response_schema=schema,
+    )
+
+    mock_interface.generate_response.assert_called_once_with(
+        user_input="Draft a memo",
+        system_prompt="Corporate assistant",
+        response_schema=schema,
+    )
+    assert result == "Acknowledged"
+
+
+def test_ai_interface_cannot_instantiate_directly() -> None:
     """Abstract classes remain non-instantiable until implemented."""
     with pytest.raises(TypeError):
-        Client()  # type: ignore[abstract]
+        AIInterface()  # type: ignore[abstract]
