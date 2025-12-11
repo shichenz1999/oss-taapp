@@ -15,6 +15,12 @@ variable "repo_branch" {
   default     = "main"
 }
 
+variable "claude_api_key" {
+  description = "Anthropic Claude API key for ai_chat_service."
+  type        = string
+  sensitive   = true
+}
+
 variable "render_owner_id" {
   description = "Render owner/team ID"
   type        = string

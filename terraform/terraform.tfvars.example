@@ -4,3 +4,5 @@ render_owner_id = "usr-xxx"
 
 repo_url    = "https://github.com/shichenz1999/oss-taapp"
 repo_branch = "hw3-api-fix"
+
+claude_api_key = "sk-ant-..."

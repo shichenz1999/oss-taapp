@@ -27,4 +27,8 @@ resource "render_web_service" "web" {
       runtime  = "node"
     }
   }
+
+  env_vars = {
+    CLAUDE_API_KEY = var.claude_api_key
+  }
 }
