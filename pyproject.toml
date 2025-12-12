@@ -39,6 +39,9 @@ members = [
   "src/ai_chat_service",
   "src/ai_chat_service_client",
   "src/ai_chat_adapter",
+  "src/smart_chat_bot",
+  "src/discord_client_impl",
+  "src/chat_client_api",
 ]
 
 [tool.ruff]
