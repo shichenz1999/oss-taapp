@@ -24,7 +24,7 @@ chat-client-api = { workspace = true }
 discord-client-impl = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
-packages = ["smart_chat_bot"]
+packages = ["src/smart_chat_bot"]
 
 [build-system]
 requires = ["hatchling"]
