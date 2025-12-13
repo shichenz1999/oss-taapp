@@ -1,19 +1,25 @@
+"""Smart chat bot service: polls chat provider, calls AI, posts replies."""
+
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
 import os
-from typing import Any, Iterable
+from typing import TYPE_CHECKING, TypeVar
 
+from discord_client_impl.discord_impl import DiscordClient
 from dotenv import load_dotenv
-import claude_chat_impl  # noqa: F401  # ensure Claude registers ai_chat_api.get_ai_interface
+from fastapi import FastAPI
+
 import chat_client_api
+import claude_chat_impl  # noqa: F401  # ensure Claude registers ai_chat_api.get_ai_interface
 import discord_client_impl  # noqa: F401  # ensure discord registers get_client
 from ai_chat_api import AIInterface, get_ai_interface
 from chat_client_api import ChatInterface, Message
-from discord_client_impl.discord_impl import DiscordClient
-from fastapi import FastAPI
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 load_dotenv()
 
@@ -27,7 +33,10 @@ CHANNEL_IDS: list[str] = [
     if channel.strip()
 ]
 if not CHANNEL_IDS:
-    raise RuntimeError("CHAT_CHANNEL_IDS must list at least one channel id (comma-separated).")
+    missing_channels_msg = (
+        "CHAT_CHANNEL_IDS must list at least one channel id (comma-separated)."
+    )
+    raise RuntimeError(missing_channels_msg)
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "8"))
 MAX_MESSAGES_PER_POLL = int(os.environ.get("MAX_MESSAGES_PER_POLL", "5"))
@@ -48,11 +57,14 @@ app = FastAPI(
 # Helpers
 # ---------------------------
 
-async def _to_thread(func, *args, **kwargs):
+T = TypeVar("T")
+
+
+async def _to_thread(func: Callable[..., T], *args: object, **kwargs: object) -> T:
     return await asyncio.to_thread(func, *args, **kwargs)
 
 
-def make_chat_client(provider: str, **cfg: Any) -> ChatInterface:
+def make_chat_client(provider: str, **cfg: str | None) -> ChatInterface:
     """Return a ChatInterface implementation based on the selected provider."""
     if provider == "discord":
         token = cfg.get("access_token") or os.environ.get("DISCORD_BOT_TOKEN")
@@ -90,6 +102,7 @@ def _iter_new_messages(messages: Iterable[Message], last_seen_id: str | None) ->
 
 
 def is_bot_message(msg: Message) -> bool:
+    """Return True if the message author is marked as a bot."""
     raw = getattr(msg, "_raw_data", None)
     if isinstance(raw, dict):
         author = raw.get("author")
@@ -110,8 +123,8 @@ async def _handle_channel(
     try:
         messages = await fetch_recent_messages(client, channel_id, MAX_MESSAGES_PER_POLL)
         logger.info("Fetched %d messages from channel %s", len(messages), channel_id)
-    except Exception as exc:  # noqa: BLE001
-        logger.error("Failed to fetch messages for channel %s: %s", channel_id, exc)
+    except Exception:
+        logger.exception("Failed to fetch messages for channel %s", channel_id)
         return
 
     for msg in _iter_new_messages(messages, last_seen.get(channel_id)):
@@ -140,8 +153,8 @@ async def _handle_channel(
             await send_message(client, channel_id, reply)
             last_seen[channel_id] = msg.id
             logger.info("Replied to message %s in channel %s", msg.id, channel_id)
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Failed to handle message %s in channel %s: %s", msg.id, channel_id, exc)
+        except Exception:
+            logger.exception("Failed to handle message %s in channel %s", msg.id, channel_id)
 
 
 async def _poll_loop() -> None:
@@ -186,7 +199,7 @@ async def stop_polling() -> None:
 
 @app.get("/", tags=["General"])
 async def root() -> dict[str, object]:
-    """Basic heartbeat for the smart chat bot service."""
+    """Return basic heartbeat for the smart chat bot service."""
     return {
         "status": "ok",
         "provider": CHAT_PROVIDER,
