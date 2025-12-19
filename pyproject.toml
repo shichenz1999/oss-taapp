@@ -47,6 +47,8 @@ members = [
   "src/discord_client_service",
   "src/discord_client_service_client",
   "src/discord_client_service_adapter",
+  "src/ticket_api",
+  "src/ticket_impl",
 ]
 
 [tool.ruff]
@@ -105,11 +107,14 @@ mypy_path = [
     "src/discord_client_service_client/src",
     "src/discord_client_service_adapter/src",  
     "src/smart_chat_bot/src",
+    "src/ticket_api/src",
+    "src/ticket_impl/src",
 ]
 exclude = [
   "src/mail_client_service_client/src/mail_client_service_client/.*",
   "src/ai_chat_service_client/src/ai_chat_service_client/.*",
   "src/discord_client_service_client/discord_client_service_client/.*",
+  "src/ticket_service_client/src/ticket_service_client/.*",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false

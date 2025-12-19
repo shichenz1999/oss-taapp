@@ -10,6 +10,8 @@ dependencies = [
     "claude-chat-impl",
     "chat-client-api",
     "discord-client-impl",
+    "ticket-api",
+    "ticket-impl",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +24,8 @@ ai-chat-api = { workspace = true }
 claude-chat-impl = { workspace = true }
 chat-client-api = { workspace = true }
 discord-client-impl = { workspace = true }
+ticket-api = { workspace = true }
+ticket-impl = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/smart_chat_bot"]

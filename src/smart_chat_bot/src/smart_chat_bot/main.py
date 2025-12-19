@@ -18,10 +18,10 @@ import claude_chat_impl  # noqa: F401  # ensure Claude registers ai_chat_api.get
 import discord_client_impl  # noqa: F401  # ensure discord registers get_client
 from ai_chat_api import AIInterface, get_ai_interface
 from chat_client_api import ChatInterface, Message
+from ticket_api.adapter import StandardizedTicketAdapter
+from ticket_api.shared_interface import TicketInterface, TicketStatus
+from ticket_impl import TicketImpl
 
-from ticket_api import TicketInterface, TicketStatus
-
-from ticket_client_impl.service import TicketServiceImpl 
 from smart_chat_bot.schemas import BotAction, TicketIntent
 from smart_chat_bot.prompts import TICKET_SYSTEM_PROMPT
 
@@ -49,7 +49,10 @@ BOT_USER_ID = os.environ.get("BOT_USER_ID")
 app = FastAPI(title="Smart Chat Bot API", version="1.0.0")
 
 # --- Initialize Ticket Service ---
-ticket_service: TicketInterface = TicketServiceImpl()
+_ticket_user = os.environ.get("TICKET_USER_ID", "bot-user")
+_ticket_project = os.environ.get("TICKET_PROJECT_KEY", "TEST")
+_internal_ticket_service = TicketImpl(user_id=_ticket_user, project_key=_ticket_project)
+ticket_service: TicketInterface = StandardizedTicketAdapter(_internal_ticket_service, reporter=_ticket_user)
 
 # ---------------------------
 # Helpers
@@ -74,6 +77,17 @@ async def fetch_recent_messages(client: ChatInterface, channel_id: str, limit: i
 
 async def send_message(client: ChatInterface, channel_id: str, content: str) -> bool:
     return await _to_thread(client.send_message, channel_id, content)
+
+
+def _safe_status(value: str | None) -> TicketStatus | None:
+    """Convert a string to TicketStatus, logging and ignoring invalid values."""
+    if not value:
+        return None
+    try:
+        return TicketStatus(value)
+    except ValueError:
+        logger.warning("Invalid status value from AI: %r", value)
+        return None
 
 
 async def generate_bot_action(ai: AIInterface, user_input: str) -> BotAction:
@@ -113,13 +127,13 @@ async def execute_ticket_action(action: BotAction) -> str:
 
         elif action.intent == TicketIntent.SEARCH_TICKETS:
             # Handle Enum Conversion
-            status = TicketStatus(p["status"].lower()) if p.get("status") else None
+            status = _safe_status(p.get("status"))
             tickets = await _to_thread(ticket_service.search_tickets, p.get("query"), status)
             if not tickets: return "🔍 No tickets found."
             return "🔍 Results:\n" + "\n".join([f"- [{t.id}] {t.status}: {t.title}" for t in tickets])
 
         elif action.intent == TicketIntent.UPDATE_TICKET:
-            status = TicketStatus(p["status"].lower()) if p.get("status") else None
+            status = _safe_status(p.get("status"))
             t = await _to_thread(ticket_service.update_ticket, p["ticket_id"], status, p.get("title"))
             return f"✅ Ticket {t.id} updated. Status: {t.status} "
 
