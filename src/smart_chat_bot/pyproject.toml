@@ -12,6 +12,7 @@ dependencies = [
     "discord-client-impl",
     "ticket-api",
     "ticket-impl",
+    "prometheus-fastapi-instrumentator>=6.1.0",
 ]
 
 [project.optional-dependencies]
