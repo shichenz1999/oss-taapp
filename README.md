@@ -158,6 +158,7 @@ OAUTH_REDIRECT_URI=http://127.0.0.1:8000/auth/callback     # must match Google c
 
 ```bash
 uvicorn ai_chat_service.main:app --reload
+uv run uvicorn smart_chat_bot.main:app --reload
 ```
 
 Available routes:

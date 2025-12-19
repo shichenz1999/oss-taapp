@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import pytest
 
 from smart_chat_bot import main
 from smart_chat_bot.schemas import BotAction, TicketIntent
 from ticket_api.shared_interface import TicketStatus
+from ai_chat_api import AIInterface
 
 
 class _DummyTicket:
@@ -28,11 +27,16 @@ class _StubTicketService:
         return _DummyTicket(title, TicketStatus.OPEN, assignee)
 
 
-class _FakeAI:
+class _FakeAI(AIInterface):
     def __init__(self, payload: dict[str, object]) -> None:
         self.payload = payload
 
-    def generate_response(self, user_input: str, system_prompt: str | None, response_schema: dict | None) -> dict[str, object]:
+    def generate_response(
+        self,
+        user_input: str,
+        system_prompt: str | None = None,
+        response_schema: dict[str, object] | None = None,
+    ) -> dict[str, object]:
         return self.payload
 
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 import pytest
@@ -10,6 +9,8 @@ import pytest
 from smart_chat_bot import main
 from smart_chat_bot.schemas import BotAction, TicketIntent
 from ticket_api.shared_interface import TicketStatus
+from chat_client_api.client import ChatInterface
+from ai_chat_api import AIInterface
 
 
 class _DummyTicket:
@@ -59,13 +60,44 @@ class _DummyMessage:
         return None
 
 
+class _StubChat(ChatInterface):
+    def get_message(self, channel_id: str, message_id: str) -> object:  # type: ignore[override]
+        raise NotImplementedError
+
+    def get_messages(self, channel_id: str, limit: int = 10) -> list[object]:  # type: ignore[override]
+        raise NotImplementedError
+
+    def send_message(self, channel_id: str, content: str) -> bool:  # type: ignore[override]
+        raise NotImplementedError
+
+    def delete_message(self, channel_id: str, message_id: str) -> bool:  # type: ignore[override]
+        raise NotImplementedError
+
+    def get_channels(self) -> list[object]:  # type: ignore[override]
+        raise NotImplementedError
+
+    def get_channel(self, channel_id: str) -> object:  # type: ignore[override]
+        raise NotImplementedError
+
+
+class _StubAI(AIInterface):
+    def generate_response(
+        self,
+        user_input: str,
+        system_prompt: str | None = None,
+        response_schema: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return {"intent": "chat", "params": {"message": "hi"}}
+
+
 @pytest.mark.asyncio
 async def test_full_flow_create_ticket(monkeypatch: pytest.MonkeyPatch) -> None:
     """Simulate chat -> AI intent -> ticket creation -> chat reply."""
-
     sent_messages: list[str] = []
 
-    async def fake_fetch_recent_messages(_client: object, channel_id: str, limit: int) -> list[_DummyMessage]:
+    async def fake_fetch_recent_messages(
+        _client: object, channel_id: str, limit: int
+    ) -> list[_DummyMessage]:
         return [_DummyMessage("m1", channel_id, "user1", "please open a ticket")]
 
     async def fake_send_message(_client: object, _channel_id: str, content: str) -> bool:
@@ -89,7 +121,7 @@ async def test_full_flow_create_ticket(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main, "ticket_service", _StubTicketService())
 
     last_seen: dict[str, str] = {}
-    await main._handle_channel(client=object(), ai=object(), channel_id="C1", last_seen=last_seen)
+    await main._handle_channel(client=_StubChat(), ai=_StubAI(), channel_id="C1", last_seen=last_seen)
 
     assert last_seen.get("C1") == "m1"
     assert sent_messages, "Expected a reply to be sent"

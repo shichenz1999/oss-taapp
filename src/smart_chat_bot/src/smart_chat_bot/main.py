@@ -174,8 +174,12 @@ async def execute_ticket_action(action: BotAction) -> str:  # noqa: C901, PLR091
             ticket_id = p.get("ticket_id")
             if not ticket_id:
                 return "❌ ticket_id is required."
-            t = await _to_thread(ticket_service.get_ticket, ticket_id)
-            return f"📄 Ticket {t.id}: {t.title} ({t.status})" if t else "❌ Ticket not found."
+            ticket = await _to_thread(ticket_service.get_ticket, ticket_id)
+            return (
+                f"📄 Ticket {ticket.id}: {ticket.title} ({ticket.status})"
+                if ticket
+                else "❌ Ticket not found."
+            )
 
         if action.intent == TicketIntent.SEARCH_TICKETS:
             # Handle Enum Conversion
@@ -201,7 +205,7 @@ async def execute_ticket_action(action: BotAction) -> str:  # noqa: C901, PLR091
             return f"🗑️ Ticket {p['ticket_id']} deleted." if ok else "❌ Delete failed."
 
         if action.intent == TicketIntent.CHAT:
-            return p.get("message", "...")
+            return str(p.get("message", "..."))
 
     except Exception as exc:
         logger.exception("Action failed")

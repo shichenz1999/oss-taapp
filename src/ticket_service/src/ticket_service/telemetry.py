@@ -8,7 +8,7 @@ This module provides Prometheus metrics for monitoring:
 
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from fastapi import Request, Response
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
@@ -158,4 +158,4 @@ def track_ticket_operation(operation: str, status: str = "success") -> None:
 
 def get_metrics() -> bytes:
     """Get Prometheus metrics in text format."""
-    return generate_latest()
+    return cast("bytes", generate_latest())

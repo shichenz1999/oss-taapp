@@ -139,6 +139,15 @@ module = [
     "discord_client_service.*",
     "discord_client_service_client.*",
     "discord_client_service_adapter.*",
+    "ticket_service.*",
+    "ticket_service_client.*",
+    "ticket_client_adapter.*",
+    "ticket_client_generated.*",
+    "ticket_service_client.api.*",
+    "ticket_service_client.models.*",
+    "ticket_service_client.types.*",
+    "dateutil.*",
+    "prometheus_client.*",
 ]
 ignore_missing_imports = true
 follow_imports = "skip"
