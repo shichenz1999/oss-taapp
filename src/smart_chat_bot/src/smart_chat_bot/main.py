@@ -7,23 +7,22 @@ import contextlib
 import json
 import logging
 import os
+from importlib import import_module
 from typing import TYPE_CHECKING, TypeVar
 
 from discord_client_impl.discord_impl import DiscordClient
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from ticket_api.adapter import StandardizedTicketAdapter
+from ticket_api.shared_interface import TicketInterface, TicketStatus
 
 import chat_client_api
 import claude_chat_impl  # noqa: F401  # ensure Claude registers ai_chat_api.get_ai_interface
 import discord_client_impl  # noqa: F401  # ensure discord registers get_client
 from ai_chat_api import AIInterface, get_ai_interface
 from chat_client_api import ChatInterface, Message
-from ticket_api.adapter import StandardizedTicketAdapter
-from ticket_api.shared_interface import TicketInterface, TicketStatus
-from ticket_impl import TicketImpl
-
-from smart_chat_bot.schemas import BotAction, TicketIntent
 from smart_chat_bot.prompts import TICKET_SYSTEM_PROMPT
+from smart_chat_bot.schemas import BotAction, TicketIntent
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -40,7 +39,8 @@ CHANNEL_IDS: list[str] = [
     if channel.strip()
 ]
 if not CHANNEL_IDS:
-    raise RuntimeError("CHAT_CHANNEL_IDS must list at least one channel id.")
+    missing_channels_msg = "CHAT_CHANNEL_IDS must list at least one channel id."
+    raise RuntimeError(missing_channels_msg)
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "8"))
 MAX_MESSAGES_PER_POLL = int(os.environ.get("MAX_MESSAGES_PER_POLL", "5"))
@@ -48,11 +48,21 @@ BOT_USER_ID = os.environ.get("BOT_USER_ID")
 
 app = FastAPI(title="Smart Chat Bot API", version="1.0.0")
 
+def _make_ticket_service() -> TicketInterface:
+    """Build the ticket service factory; swappable via env."""
+    impl_path = os.environ.get("TICKET_PROVIDER_IMPL", "ticket_impl:TicketImpl")
+    user = os.environ.get("TICKET_USER_ID", "bot-user")
+    project = os.environ.get("TICKET_PROJECT_KEY", "TEST")
+
+    module_name, class_name = impl_path.split(":")
+    module = import_module(module_name)
+    impl_cls = getattr(module, class_name)
+    internal = impl_cls(user_id=user, project_key=project)
+    return StandardizedTicketAdapter(internal, reporter=user)
+
+
 # --- Initialize Ticket Service ---
-_ticket_user = os.environ.get("TICKET_USER_ID", "bot-user")
-_ticket_project = os.environ.get("TICKET_PROJECT_KEY", "TEST")
-_internal_ticket_service = TicketImpl(user_id=_ticket_user, project_key=_ticket_project)
-ticket_service: TicketInterface = StandardizedTicketAdapter(_internal_ticket_service, reporter=_ticket_user)
+ticket_service: TicketInterface = _make_ticket_service()
 
 # ---------------------------
 # Helpers
@@ -64,19 +74,44 @@ async def _to_thread(func: Callable[..., T], *args: object, **kwargs: object) ->
     return await asyncio.to_thread(func, *args, **kwargs)
 
 def make_chat_client(provider: str, **cfg: str | None) -> ChatInterface:
+    """Return a ChatInterface implementation based on the provider."""
     if provider == "discord":
         token = cfg.get("access_token") or os.environ.get("DISCORD_BOT_TOKEN")
         token_type = cfg.get("token_type") or os.environ.get("DISCORD_TOKEN_TYPE", "Bot")
         if token:
             return DiscordClient(access_token=token, token_type=token_type)
         return chat_client_api.get_client()
-    raise ValueError(f"Unknown chat provider: {provider}")
+    err = f"Unknown chat provider: {provider}"
+    raise ValueError(err)
 
 async def fetch_recent_messages(client: ChatInterface, channel_id: str, limit: int) -> list[Message]:
+    """Fetch recent messages from a channel."""
     return await _to_thread(client.get_messages, channel_id, limit=limit)
 
 async def send_message(client: ChatInterface, channel_id: str, content: str) -> bool:
+    """Send a message to a channel."""
     return await _to_thread(client.send_message, channel_id, content)
+
+
+BOT_ACTION_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "intent": {
+            "type": "string",
+            "enum": [
+                "create_ticket",
+                "get_ticket",
+                "search_tickets",
+                "update_ticket",
+                "delete_ticket",
+                "chat",
+            ],
+        },
+        "params": {"type": "object"},
+    },
+    "required": ["intent", "params"],
+    "additionalProperties": False,
+}
 
 
 def _safe_status(value: str | None) -> TicketStatus | None:
@@ -91,63 +126,87 @@ def _safe_status(value: str | None) -> TicketStatus | None:
 
 
 async def generate_bot_action(ai: AIInterface, user_input: str) -> BotAction:
-    """Calls AI and parses the JSON response into a BotAction."""
-    raw_response = await _to_thread(ai.generate_response, user_input, TICKET_SYSTEM_PROMPT, None)
-    
+    """Call AI and parse the JSON response into a BotAction."""
+    raw_response = await _to_thread(
+        ai.generate_response, user_input, TICKET_SYSTEM_PROMPT, BOT_ACTION_SCHEMA
+    )
+
+    # Normalize to string then attempt JSON parse; fall back to dict path.
+    if isinstance(raw_response, dict):
+        try:
+            return BotAction.model_validate(raw_response)
+        except (ValueError, TypeError) as exc:
+            logger.warning("BotAction validation failed on dict (%s). Raw: %s", exc, raw_response)
+            return BotAction(intent=TicketIntent.CHAT, params={"message": str(raw_response)})
 
     clean_json = str(raw_response).strip()
     if clean_json.startswith("```"):
         clean_json = clean_json.split("\n", 1)[-1].rsplit("\n", 1)[0]
-    
+
     try:
         return BotAction.model_validate_json(clean_json)
-    except Exception as e:
-        logger.warning(f"JSON Parse Failed: {e}. Raw: {raw_response}")
-        # Fallback to chat if JSON is broken
-        return BotAction(intent=TicketIntent.CHAT, params={"message": str(raw_response)})
+    except (ValueError, TypeError) as exc:
+        try:
+            parsed = json.loads(clean_json)
+            return BotAction.model_validate(parsed)
+        except (ValueError, TypeError):
+            logger.warning("JSON parse failed (%s). Raw: %s", exc, raw_response)
+            return BotAction(intent=TicketIntent.CHAT, params={"message": str(raw_response)})
 
 
 async def execute_ticket_action(action: BotAction) -> str:
     """Routes the intent to the ticket service."""
     p = action.params
-    
+
     try:
         if action.intent == TicketIntent.CREATE_TICKET:
             # Handle Priority Injection
+            title = p.get("title")
             desc = p.get("description", "")
+            if not title:
+                return "❌ Missing title for ticket creation."
             if prio := p.get("priority"):
-                desc = f"[{prio.upper()}] {desc}"
-            
-            t = await _to_thread(ticket_service.create_ticket, p["title"], desc, p.get("assignee"))
+                desc = f"[{prio.upper()}] {desc}".strip()
+            t = await _to_thread(ticket_service.create_ticket, title, desc, p.get("assignee"))
             return f"✅ Ticket Created! ID: {t.id} "
 
-        elif action.intent == TicketIntent.GET_TICKET:
-            t = await _to_thread(ticket_service.get_ticket, p["ticket_id"])
+        if action.intent == TicketIntent.GET_TICKET:
+            ticket_id = p.get("ticket_id")
+            if not ticket_id:
+                return "❌ ticket_id is required."
+            t = await _to_thread(ticket_service.get_ticket, ticket_id)
             return f"📄 Ticket {t.id}: {t.title} ({t.status})" if t else "❌ Ticket not found."
 
-        elif action.intent == TicketIntent.SEARCH_TICKETS:
+        if action.intent == TicketIntent.SEARCH_TICKETS:
             # Handle Enum Conversion
             status = _safe_status(p.get("status"))
             tickets = await _to_thread(ticket_service.search_tickets, p.get("query"), status)
-            if not tickets: return "🔍 No tickets found."
+            if not tickets:
+                return "🔍 No tickets found."
             return "🔍 Results:\n" + "\n".join([f"- [{t.id}] {t.status}: {t.title}" for t in tickets])
 
-        elif action.intent == TicketIntent.UPDATE_TICKET:
+        if action.intent == TicketIntent.UPDATE_TICKET:
             status = _safe_status(p.get("status"))
-            t = await _to_thread(ticket_service.update_ticket, p["ticket_id"], status, p.get("title"))
+            ticket_id = p.get("ticket_id")
+            if not ticket_id:
+                return "❌ ticket_id is required."
+            t = await _to_thread(ticket_service.update_ticket, ticket_id, status, p.get("title"))
             return f"✅ Ticket {t.id} updated. Status: {t.status} "
 
-        elif action.intent == TicketIntent.DELETE_TICKET:
-            ok = await _to_thread(ticket_service.delete_ticket, p["ticket_id"])
+        if action.intent == TicketIntent.DELETE_TICKET:
+            ticket_id = p.get("ticket_id")
+            if not ticket_id:
+                return "❌ ticket_id is required."
+            ok = await _to_thread(ticket_service.delete_ticket, ticket_id)
             return f"🗑️ Ticket {p['ticket_id']} deleted." if ok else "❌ Delete failed."
 
-        elif action.intent == TicketIntent.CHAT:
+        if action.intent == TicketIntent.CHAT:
             return p.get("message", "...")
 
     except Exception as e:
         logger.error(f"Action Failed: {e}")
         return f"⚠️ Error executing {action.intent}: {e}"
-    
+
     return "Error: Unknown intent."
 
 def _iter_new_messages(messages: Iterable[Message], last_seen_id: str | None) -> Iterable[Message]:
@@ -195,7 +254,7 @@ async def _handle_channel(client: ChatInterface, ai: AIInterface, channel_id: st
                 content_str,
             )
             continue
-            
+
         try:
             # 1. AI Analysis
             bot_action = await generate_bot_action(ai, content_str)
@@ -204,7 +263,7 @@ async def _handle_channel(client: ChatInterface, ai: AIInterface, channel_id: st
             # 2. Execution & Reply
             reply_text = await execute_ticket_action(bot_action)
             await send_message(client, channel_id, reply_text)
-            
+
             last_seen[channel_id] = msg.id
         except Exception:
             logger.exception("Failed to handle message %s", msg.id)

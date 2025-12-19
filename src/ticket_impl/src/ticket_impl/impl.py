@@ -221,7 +221,7 @@ class TicketImpl(TicketServiceAPI):
                 choice = next((t for t in transitions if t.get("name") in target), None)
                 if not choice:
                     msg = f"No valid transition found to {status} for {key}"
-                    raise ServiceError(msg)  # noqa: TRY301
+                    raise ServiceError(msg)
                 await jc.do_transition(self.user_id, key, choice["id"])
             data = await jc.get_issue(self.user_id, key)
             return _jira_to_ticket(data, self.user_id)
@@ -238,7 +238,7 @@ class TicketImpl(TicketServiceAPI):
             acct = await jc.find_user_account_id(self.user_id, new_assignee)
             if not acct:
                 msg = f"Assignee '{new_assignee}' was not found"
-                raise ServiceError(msg)  # noqa: TRY301
+                raise ServiceError(msg)
             await jc.update_issue_fields(self.user_id, key, {"assignee": {"id": acct}})
             data = await jc.get_issue(self.user_id, key)
             return _jira_to_ticket(data, self.user_id)

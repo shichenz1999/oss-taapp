@@ -23,7 +23,7 @@ async def _headers(user_id: str) -> dict[str, str]:
     # Prefer PAT/basic auth when JIRA_API_TOKEN is provided; otherwise use OAuth bearer.
     if settings.jira_api_token:
         email = settings.jira_api_email or user_id
-        basic = base64.b64encode(f"{email}:{settings.jira_api_token}".encode("utf-8")).decode("ascii")
+        basic = base64.b64encode(f"{email}:{settings.jira_api_token}".encode()).decode("ascii")
         return {"Authorization": f"Basic {basic}", "Accept": "application/json", "Content-Type": "application/json"}
 
     token = await get_valid_access_token(user_id)
