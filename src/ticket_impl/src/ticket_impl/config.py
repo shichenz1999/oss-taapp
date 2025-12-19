@@ -20,6 +20,8 @@ class Settings(BaseModel):
         "JIRA_API_BASE",
         f"https://api.atlassian.com/ex/jira/{os.environ.get('JIRA_CLOUD_ID', 'dummy-cloud-id-for-development')}",
     )
+    jira_api_token: str | None = os.environ.get("JIRA_API_TOKEN")
+    jira_api_email: str | None = os.environ.get("JIRA_API_EMAIL")
 
     # Atlassian OAuth 2.0 (3LO)
     oauth_client_id: str = os.environ.get("OAUTH_CLIENT_ID", "dummy-client-id")
