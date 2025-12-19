@@ -18,6 +18,8 @@ class Ticket(BaseModel):
 
 
 class TicketIntent(str, Enum):
+    """Supported ticket/chat intents from the AI."""
+
     CREATE_TICKET = "create_ticket"
     GET_TICKET = "get_ticket"
     SEARCH_TICKETS = "search_tickets"

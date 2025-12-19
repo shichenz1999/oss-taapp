@@ -246,7 +246,7 @@ class RemoteTicketService(TicketServiceAPI):
 
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 - client requires explicit params
         self,
         base_url: str,
         user_id: str,
@@ -555,7 +555,7 @@ class RemoteTicketService(TicketServiceAPI):
         )
         return [self._to_domain_ticket(t) for t in response.parsed.tickets]
 
-    async def update_ticket(
+    async def update_ticket(  # noqa: PLR0913 - API requires these params
         self,
         ticket_id: UUID,
         title: str | None = None,

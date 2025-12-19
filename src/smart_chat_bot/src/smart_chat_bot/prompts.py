@@ -8,7 +8,8 @@ Schema:
 {
   "intent": "create_ticket" | "get_ticket" | "search_tickets" | "update_ticket" | "delete_ticket" | "chat",
   "params": {
-    // create_ticket: title (string), description (string), priority (string, optional), assignee (string|null, optional), status (open|in_progress|closed, optional)
+    // create_ticket: title (string), description (string), priority (string, optional),
+    //                assignee (string|null, optional), status (open|in_progress|closed, optional)
     // get_ticket/delete_ticket/update_ticket: ticket_id (string)
     // search_tickets: query (string|null), status (open|in_progress|closed|null)
     // update_ticket: ticket_id (string), status (open|in_progress|closed|null), title (string|null)

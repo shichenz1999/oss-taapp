@@ -154,7 +154,7 @@ async def generate_bot_action(ai: AIInterface, user_input: str) -> BotAction:
             return BotAction(intent=TicketIntent.CHAT, params={"message": str(raw_response)})
 
 
-async def execute_ticket_action(action: BotAction) -> str:
+async def execute_ticket_action(action: BotAction) -> str:  # noqa: C901, PLR0911, PLR0912
     """Routes the intent to the ticket service."""
     p = action.params
 
@@ -203,15 +203,16 @@ async def execute_ticket_action(action: BotAction) -> str:
         if action.intent == TicketIntent.CHAT:
             return p.get("message", "...")
 
-    except Exception as e:
-        logger.error(f"Action Failed: {e}")
-        return f"⚠️ Error executing {action.intent}: {e}"
+    except Exception as exc:
+        logger.exception("Action failed")
+        return f"⚠️ Error executing {action.intent}: {exc}"
 
     return "Error: Unknown intent."
 
 def _iter_new_messages(messages: Iterable[Message], last_seen_id: str | None) -> Iterable[Message]:
     for msg in messages:
-        if last_seen_id and msg.id == last_seen_id: break
+        if last_seen_id and msg.id == last_seen_id:
+            break
         yield msg
 
 def is_bot_message(msg: Message) -> bool:
@@ -258,7 +259,7 @@ async def _handle_channel(client: ChatInterface, ai: AIInterface, channel_id: st
         try:
             # 1. AI Analysis
             bot_action = await generate_bot_action(ai, content_str)
-            logger.info(f"Intent: {bot_action.intent}")
+            logger.info("Intent: %s", bot_action.intent)
 
             # 2. Execution & Reply
             reply_text = await execute_ticket_action(bot_action)
@@ -291,11 +292,13 @@ async def _poll_loop() -> None:
 
 @app.on_event("startup")
 async def start_polling() -> None:
+    """Start the background polling loop."""
     app.state.polling_task = asyncio.create_task(_poll_loop())
     logger.info("Smart chat bot started.")
 
 @app.on_event("shutdown")
 async def stop_polling() -> None:
+    """Stop the background polling loop."""
     task = getattr(app.state, "polling_task", None)
     if task:
         task.cancel()

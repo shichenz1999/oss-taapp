@@ -71,7 +71,7 @@ async def search_issues(user_id: str, jql: str, max_results: int = 50, start_at:
         return cast("dict[str, Any]", r.json())
 
 
-async def create_issue(
+async def create_issue(  # noqa: PLR0913 - Jira API requires these params
     user_id: str,
     project_key: str,
     summary: str,

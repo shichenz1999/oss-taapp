@@ -87,7 +87,7 @@ class TicketServiceAPI(ABC):
         """
 
     @abstractmethod
-    async def update_ticket(
+    async def update_ticket(  # noqa: PLR0913 - API requires multiple optional params
         self,
         ticket_id: UUID,
         title: str | None = None,
