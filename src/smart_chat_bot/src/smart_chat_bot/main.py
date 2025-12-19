@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, TypeVar
 from discord_client_impl.discord_impl import DiscordClient
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 from ticket_api.adapter import StandardizedTicketAdapter
 from ticket_api.shared_interface import TicketInterface, TicketStatus
 
@@ -47,6 +48,10 @@ MAX_MESSAGES_PER_POLL = int(os.environ.get("MAX_MESSAGES_PER_POLL", "5"))
 BOT_USER_ID = os.environ.get("BOT_USER_ID")
 
 app = FastAPI(title="Smart Chat Bot API", version="1.0.0")
+
+# Prometheus metrics instrumentation (adds middleware before app starts)
+instrumentator = Instrumentator().instrument(app)
+instrumentator.expose(app, include_in_schema=False)
 
 def _make_ticket_service() -> TicketInterface:
     user = os.environ.get("TICKET_USER_ID", "bot-user")
