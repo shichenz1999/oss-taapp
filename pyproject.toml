@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.118.0",
     "pydantic>=2.11.9",
     "pydantic-settings>=2.7.0",
+    "prometheus-client>=0.20.0",
     "requests>=2.32.5",
     "uvicorn>=0.38.0",
 ]
@@ -49,6 +50,7 @@ members = [
   "src/discord_client_service_adapter",
   "src/ticket_api",
   "src/ticket_impl",
+  "src/ticket_service",
 ]
 
 [tool.ruff]
@@ -181,9 +183,14 @@ pythonpath = [
     "src/discord_client_impl/src",
     "src/discord_client_service/src",
     "src/smart_chat_bot/src",
+    "src/ticket_api/src",
+    "src/ticket_service/src",
+    "src/ticket_client_adapter/src",
+    "src/ticket_client_generated",
 ]
 testpaths = ["tests", "src/*/tests"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
+asyncio_mode = "auto"
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
     "integration: marks tests as integration tests (medium speed, real dependencies)",
@@ -200,6 +207,7 @@ omit = [
     "src/mail_client_service_client/src/mail_client_service_client/*",
     "src/ai_chat_service_client/src/ai_chat_service_client/*",
     "src/discord_client_service_client/discord_client_service_client/*",
+    "src/ticket_client_generated/*",
 ]
 
 [tool.coverage.report]

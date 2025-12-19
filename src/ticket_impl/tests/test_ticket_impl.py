@@ -14,8 +14,9 @@ from ticket_impl.storage import map_uuid_to_key
 
 from ticket_impl import TicketImpl
 
-# Use the cloud ID from settings to match actual requests
-BASE = f"https://api.atlassian.com/ex/jira/{settings.jira_cloud_id}/rest/api/3"
+# Build the same base Jira URL that jira_client uses, even when JIRA_API_BASE is overridden.
+_base = settings.jira_api_base.rstrip("/")
+BASE = _base if _base.endswith("/rest/api/3") else f"{_base}/rest/api/3"
 EXPECTED_GET_CALLS = 3  # after create, explicit get, and after status transition
 
 
@@ -68,7 +69,7 @@ async def test_create_get_list_transition_comment_delete(seed_token: None) -> No
 @pytest.mark.asyncio
 async def test_create_ticket_with_service_error(seed_token: None) -> None:
     """Test that create_ticket raises ServiceError on HTTP errors."""
-    respx.get(f"{BASE}/user/search").mock(return_value=httpx.Response(200, json=[]))
+    respx.get(re.compile(f"{re.escape(BASE)}/user/search\\?.*")).mock(return_value=httpx.Response(200, json=[]))
     respx.post(f"{BASE}/issue").mock(return_value=httpx.Response(500, json={"error": "Internal error"}))
 
     svc = TicketImpl(user_id="u1", project_key="OSDP")
@@ -113,7 +114,7 @@ async def test_list_tickets_with_invalid_params(seed_token: None) -> None:
 @respx.mock
 async def test_list_tickets_service_error(seed_token: None) -> None:
     """Test that list_tickets raises ServiceError on HTTP errors."""
-    respx.post(f"{BASE}/search").mock(return_value=httpx.Response(500, json={"error": "Server error"}))
+    respx.post(f"{BASE}/search/jql").mock(return_value=httpx.Response(500, json={"error": "Server error"}))
 
     svc = TicketImpl(user_id="u1", project_key="OSDP")
 
@@ -158,7 +159,7 @@ async def test_reassign_ticket_success(seed_token: None) -> None:
 
     map_uuid_to_key("u1", ticket_id, key)
 
-    respx.get(f"{BASE}/user/search").mock(
+    respx.get(re.compile(f"{re.escape(BASE)}/user/search\\?.*")).mock(
         return_value=httpx.Response(200, json=[{"accountId": "acc-2", "displayName": "NewAssignee"}]),
     )
     respx.put(f"{BASE}/issue/{key}").mock(return_value=httpx.Response(204))
@@ -198,7 +199,7 @@ async def test_reassign_ticket_user_not_found(seed_token: None) -> None:
 
     map_uuid_to_key("u1", ticket_id, key)
 
-    respx.get(f"{BASE}/user/search").mock(return_value=httpx.Response(200, json=[]))
+    respx.get(re.compile(f"{re.escape(BASE)}/user/search\\?.*")).mock(return_value=httpx.Response(200, json=[]))
 
     svc = TicketImpl(user_id="u1", project_key="OSDP")
 
@@ -364,7 +365,7 @@ async def test_get_ticket_comments_empty(seed_token: None) -> None:
 @respx.mock
 async def test_create_ticket_with_all_priorities(seed_token: None) -> None:
     """Test creating tickets with different priority levels."""
-    respx.get(f"{BASE}/user/search").mock(return_value=httpx.Response(200, json=[]))
+    respx.get(re.compile(f"{re.escape(BASE)}/user/search\\?.*")).mock(return_value=httpx.Response(200, json=[]))
     respx.post(f"{BASE}/issue").mock(return_value=httpx.Response(201, json={"id": "10001", "key": "OSDP-101"}))
     respx.put(f"{BASE}/issue/OSDP-101").mock(return_value=httpx.Response(204))
 
