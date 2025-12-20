@@ -6,7 +6,17 @@ import logging
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from ticket_api import Comment, ServiceError, Ticket, TicketNotFoundError, TicketPriority, TicketServiceAPI, TicketStatus
+import httpx
+
+from ticket_api import (
+    Comment,
+    ServiceError,
+    Ticket,
+    TicketNotFoundError,
+    TicketPriority,
+    TicketServiceAPI,
+    TicketStatus,
+)
 
 from . import jira_client as jc
 from .storage import ensure_mapping_for_keys, get_key_for_uuid, map_uuid_to_key
@@ -90,6 +100,111 @@ def _jira_comment_to_domain(c: dict[str, Any], ticket_uuid: UUID) -> Comment:
     )
 
 
+def _build_jql(
+    project_key: str,
+    status: TicketStatus | None,
+    assignee: str | None,
+    reporter: str | None,
+) -> str:
+    clauses: list[str] = [f'project = "{project_key}"']
+    if status:
+        name = {
+            TicketStatus.OPEN: "Open",
+            TicketStatus.IN_PROGRESS: "In Progress",
+            TicketStatus.RESOLVED: "Done",
+            TicketStatus.CLOSED: "Closed",
+        }[status]
+        clauses.append(f'status = "{name}"')
+    if assignee:
+        clauses.append(f'assignee in (currentUser(), "{assignee}")')
+    if reporter:
+        clauses.append(f'reporter = "{reporter}"')
+    # Jira Cloud disallows unbounded JQL; always include a recent window to keep queries bounded.
+    clauses.append("updated >= -365d")
+    return " AND ".join(clauses) + " ORDER BY updated DESC"
+
+
+async def _normalize_search_issue(user_id: str, entry: object) -> dict[str, Any] | None:
+    if not isinstance(entry, dict):
+        logger.warning("Skipping non-dict issue from Jira search: %r", entry)
+        return None
+    issue_key = entry.get("key")
+    fields = entry.get("fields")
+    if issue_key and isinstance(fields, dict):
+        return entry
+    issue_id = entry.get("id")
+    if not issue_id:
+        logger.warning("Skipping issue missing key/id in search response: %s", entry)
+        return None
+    try:
+        hydrated = await jc.get_issue(user_id, issue_id)
+    except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+        logger.warning("Failed to hydrate issue %s: %s", issue_id, exc)
+        return None
+    issue_key = hydrated.get("key")
+    fields = hydrated.get("fields")
+    if not issue_key or not isinstance(fields, dict):
+        logger.warning("Skipping issue missing key/fields after hydration: %s", hydrated)
+        return None
+    return hydrated
+
+
+def _unique_issues_by_key(issues: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any]]]:
+    seen: set[str] = set()
+    unique: list[tuple[str, dict[str, Any]]] = []
+    for issue in issues:
+        key = issue.get("key")
+        if not isinstance(key, str) or not key:
+            continue
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append((key, issue))
+    return unique
+
+
+def _status_targets(status: TicketStatus) -> list[str]:
+    return {
+        TicketStatus.OPEN: ["Open", "To Do"],
+        TicketStatus.IN_PROGRESS: ["In Progress", "Doing"],
+        TicketStatus.RESOLVED: ["Done", "Resolved"],
+        TicketStatus.CLOSED: ["Closed", "Done", "Resolved"],
+    }[status]
+
+
+async def _transition_status(user_id: str, issue_key: str, status: TicketStatus) -> None:
+    transitions = await jc.list_transitions(user_id, issue_key)
+    targets = _status_targets(status)
+    choice = next((t for name in targets for t in transitions if t.get("name") == name), None)
+    if not choice:
+        msg = f"No valid transition found to {status} for {issue_key}"
+        raise ServiceError(msg)
+    await jc.do_transition(user_id, issue_key, choice["id"])
+
+
+async def _build_update_fields(
+    user_id: str,
+    title: str | None,
+    description: str | None,
+    priority: TicketPriority | None,
+    assignee: str | None,
+) -> dict[str, Any]:
+    fields: dict[str, Any] = {}
+    if title is not None:
+        fields["summary"] = title
+    if description is not None:
+        fields["description"] = description
+    if priority is not None:
+        fields["priority"] = {"name": _priority_to_jira(priority)}
+    if assignee is not None:
+        acct = await jc.find_user_account_id(user_id, assignee)
+        if not acct:
+            msg = f"Assignee '{assignee}' was not found"
+            raise ServiceError(msg)
+        fields["assignee"] = {"id": acct}
+    return fields
+
+
 # ---- concrete implementation ----
 
 
@@ -162,21 +277,7 @@ class TicketImpl(TicketServiceAPI):
             msg = "limit/offset must be non-negative."
             raise ValueError(msg)
 
-        clauses: list[str] = [f'project = "{self.project_key}"']
-        if status:
-            name = {
-                TicketStatus.OPEN: "Open",
-                TicketStatus.IN_PROGRESS: "In Progress",
-                TicketStatus.RESOLVED: "Done",
-                TicketStatus.CLOSED: "Closed",
-            }[status]
-            clauses.append(f'status = "{name}"')
-        if assignee:
-            clauses.append(f'assignee in (currentUser(), "{assignee}")')
-        if reporter:
-            clauses.append(f'reporter = "{reporter}"')
-
-        jql = " AND ".join(clauses) + " ORDER BY updated DESC"
+        jql = _build_jql(self.project_key, status, assignee, reporter)
         try:
             raw = await jc.search_issues(self.user_id, jql=jql, max_results=min(50, limit), start_at=offset)
             logger.debug("Jira search raw response: %s", raw)
@@ -186,49 +287,52 @@ class TicketImpl(TicketServiceAPI):
 
         # The /search/jql endpoint returns issues directly in the response
         issues = raw.get("issues", [])
+        if not isinstance(issues, list):
+            msg = "Unexpected Jira search response: issues is not a list."
+            raise ServiceError(msg)
         logger.info("Jira search returned %d issues", len(issues))
 
-        out: list[Ticket] = []
+        hydrated: list[dict[str, Any]] = []
+        for entry in issues:
+            issue = await _normalize_search_issue(self.user_id, entry)
+            if issue:
+                hydrated.append(issue)
+
+        unique_issues = _unique_issues_by_key(hydrated)
+        tickets: list[Ticket] = []
         pairs: list[tuple[UUID, str]] = []
-        for it in issues:
-            t = _jira_to_ticket(it, self.user_id)
-            out.append(t)
-            pairs.append((t.id, it.get("key", "")))
-        ensure_mapping_for_keys(self.user_id, pairs)
-        return out
+        for issue_key, issue in unique_issues:
+            ticket = _jira_to_ticket(issue, self.user_id)
+            tickets.append(ticket)
+            pairs.append((ticket.id, issue_key))
+        if pairs:
+            ensure_mapping_for_keys(self.user_id, pairs)
+        return tickets
 
     # UPDATE
-    async def update_ticket(
+    async def update_ticket(  # noqa: PLR0913 - API requires multiple optional params
         self,
         ticket_id: UUID,
-        _title: str | None = None,
-        _description: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
         status: TicketStatus | None = None,
-        _priority: TicketPriority | None = None,
-        _assignee: str | None = None,
+        priority: TicketPriority | None = None,
+        assignee: str | None = None,
     ) -> Ticket:
         """Update fields and/or workflow state; return the refreshed ticket."""
         key = get_key_for_uuid(self.user_id, ticket_id) or str(ticket_id)
         try:
             if status:
-                transitions = await jc.list_transitions(self.user_id, key)
-                target = {
-                    TicketStatus.OPEN: {"Open", "To Do"},
-                    TicketStatus.IN_PROGRESS: {"In Progress", "Doing"},
-                    TicketStatus.RESOLVED: {"Done", "Resolved"},
-                    TicketStatus.CLOSED: {"Closed"},
-                }[status]
-                choice = next((t for t in transitions if t.get("name") in target), None)
-                if not choice:
-                    msg = f"No valid transition found to {status} for {key}"
-                    raise ServiceError(msg)
-                await jc.do_transition(self.user_id, key, choice["id"])
+                await _transition_status(self.user_id, key, status)
+            fields = await _build_update_fields(self.user_id, title, description, priority, assignee)
+            if fields:
+                await jc.update_issue_fields(self.user_id, key, fields)
             data = await jc.get_issue(self.user_id, key)
             return _jira_to_ticket(data, self.user_id)
         except TicketNotFoundError:
             raise
         except Exception as e:
-            msg = f"Failed to transition status: {e}"
+            msg = f"Failed to update ticket: {e}"
             raise ServiceError(msg) from e
 
     async def reassign_ticket(self, ticket_id: UUID, new_assignee: str) -> Ticket:

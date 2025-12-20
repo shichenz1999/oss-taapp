@@ -57,16 +57,19 @@ async def delete_issue(user_id: str, issue_key: str) -> bool:
         return False
 
 
-async def search_issues(user_id: str, jql: str, max_results: int = 50, start_at: int = 0) -> dict[str, Any]:  # noqa: ARG001
+async def search_issues(user_id: str, jql: str, max_results: int = 50, start_at: int = 0) -> dict[str, Any]:
     """Search issues using JQL with pagination."""
-    payload = {
+    fields = "summary,description,status,priority,assignee,reporter"
+    params: dict[str, str | int] = {
         "jql": jql,
         "maxResults": max_results,
+        "startAt": start_at,
+        "fields": fields,
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(_v3("/search/jql"), headers=await _headers(user_id), json=payload)
+        r = await client.get(_v3("/search/jql"), headers=await _headers(user_id), params=params)
         if r.status_code != HTTPStatus.OK:
-            logger.error("Jira API error response: %s", r.text)
+            logger.error("Jira API error response for jql=%s: %s", jql, r.text)
         r.raise_for_status()
         return cast("dict[str, Any]", r.json())
 

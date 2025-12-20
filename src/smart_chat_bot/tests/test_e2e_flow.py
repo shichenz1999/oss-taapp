@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 
 import pytest
-from ai_chat_api import get_ai_interface
+import ai_chat_api
+from dotenv import load_dotenv
 
 
 def _split_channel_ids(value: str | None) -> list[str]:
@@ -13,6 +14,7 @@ def _split_channel_ids(value: str | None) -> list[str]:
         return []
     return [item.strip() for item in value.split(",") if item.strip()]
 
+load_dotenv()
 
 _required_env = [
     "CHAT_CHANNEL_IDS",
@@ -47,7 +49,7 @@ async def test_full_flow_real_services() -> None:
     prompt = DEFAULT_E2E_PROMPT
 
     client = main.make_chat_client(main.CHAT_PROVIDER)
-    ai = get_ai_interface()
+    ai = ai_chat_api.get_ai_interface()
 
     messages = await main.fetch_recent_messages(
         client,
