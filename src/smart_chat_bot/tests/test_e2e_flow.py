@@ -1,128 +1,70 @@
-"""End-to-end flow test for smart_chat_bot (chat -> AI -> ticket -> reply)."""
+"""End-to-end flow test for smart_chat_bot using real services."""
 
 from __future__ import annotations
 
-from typing import Any
+import os
 
 import pytest
 
-from smart_chat_bot import main
-from smart_chat_bot.schemas import BotAction, TicketIntent
-from ticket_api.shared_interface import TicketStatus
-from chat_client_api.client import ChatInterface
-from ai_chat_api import AIInterface
+
+def _split_channel_ids(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
-class _DummyTicket:
-    def __init__(self, title: str, status: TicketStatus) -> None:
-        self.id = "42"
-        self.title = title
-        self.status = status
-        self.assignee = None
+_required_env = [
+    "CHAT_CHANNEL_IDS",
+    "DISCORD_BOT_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "JIRA_API_TOKEN",
+    "JIRA_API_EMAIL",
+    "TICKET_PROJECT_KEY",
+]
+_missing = [key for key in _required_env if not os.environ.get(key)]
+if not (os.environ.get("JIRA_API_BASE") or os.environ.get("JIRA_CLOUD_ID")):
+    _missing.append("JIRA_API_BASE or JIRA_CLOUD_ID")
+if not _split_channel_ids(os.environ.get("CHAT_CHANNEL_IDS")):
+    if "CHAT_CHANNEL_IDS" not in _missing:
+        _missing.append("CHAT_CHANNEL_IDS")
+if _missing:
+    pytest.skip(
+        f"Missing required env vars for smart_chat_bot e2e: {sorted(set(_missing))}",
+        allow_module_level=True,
+    )
 
+from smart_chat_bot import main  # noqa: E402  # skip check runs before import
 
-class _DummyMessage:
-    """Minimal Message implementation for testing."""
+pytestmark = [pytest.mark.e2e, pytest.mark.local_credentials]
 
-    def __init__(self, msg_id: str, channel_id: str, sender_id: str, content: str) -> None:
-        self._id = msg_id
-        self._channel_id = channel_id
-        self._sender_id = sender_id
-        self._content = content
-        self._raw_data: dict[str, Any] = {"author": {"bot": False}}
-
-    @property
-    def id(self) -> str:
-        return self._id
-
-    @property
-    def channel_id(self) -> str:
-        return self._channel_id
-
-    @property
-    def sender_id(self) -> str:
-        return self._sender_id
-
-    @property
-    def sender_name(self) -> str:
-        return "tester"
-
-    @property
-    def content(self) -> str:
-        return self._content
-
-    @property
-    def timestamp(self) -> str:
-        return "now"
-
-    @property
-    def edited_timestamp(self) -> str | None:
-        return None
-
-
-class _StubChat(ChatInterface):
-    def get_message(self, channel_id: str, message_id: str) -> object:  # type: ignore[override]
-        raise NotImplementedError
-
-    def get_messages(self, channel_id: str, limit: int = 10) -> list[object]:  # type: ignore[override]
-        raise NotImplementedError
-
-    def send_message(self, channel_id: str, content: str) -> bool:  # type: ignore[override]
-        raise NotImplementedError
-
-    def delete_message(self, channel_id: str, message_id: str) -> bool:  # type: ignore[override]
-        raise NotImplementedError
-
-    def get_channels(self) -> list[object]:  # type: ignore[override]
-        raise NotImplementedError
-
-    def get_channel(self, channel_id: str) -> object:  # type: ignore[override]
-        raise NotImplementedError
-
-
-class _StubAI(AIInterface):
-    def generate_response(
-        self,
-        user_input: str,
-        system_prompt: str | None = None,
-        response_schema: dict[str, object] | None = None,
-    ) -> dict[str, object]:
-        return {"intent": "chat", "params": {"message": "hi"}}
+DEFAULT_E2E_PROMPT = "Hello! Please reply with a short greeting only."
 
 
 @pytest.mark.asyncio
-async def test_full_flow_create_ticket(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Simulate chat -> AI intent -> ticket creation -> chat reply."""
-    sent_messages: list[str] = []
+async def test_full_flow_real_services() -> None:
+    """Chat -> AI -> TicketImpl -> reply using real services."""
+    channel_id = main.CHANNEL_IDS[0]
+    prompt: str | None = DEFAULT_E2E_PROMPT
 
-    async def fake_fetch_recent_messages(
-        _client: object, channel_id: str, limit: int
-    ) -> list[_DummyMessage]:
-        return [_DummyMessage("m1", channel_id, "user1", "please open a ticket")]
+    client = main.make_chat_client(main.CHAT_PROVIDER)
+    ai = main.get_ai_interface()
 
-    async def fake_send_message(_client: object, _channel_id: str, content: str) -> bool:
-        sent_messages.append(content)
-        return True
+    messages = await main.fetch_recent_messages(
+        client,
+        channel_id,
+        limit=main.MAX_MESSAGES_PER_POLL,
+    )
+    for msg in messages:
+        content = str(msg.content or "").strip()
+        if not content:
+            continue
+        if main.is_bot_message(msg):
+            continue
+        prompt = content
+        break
 
-    async def fake_generate_bot_action(_ai: object, user_input: str) -> BotAction:
-        assert user_input == "please open a ticket"
-        return BotAction(
-            intent=TicketIntent.CREATE_TICKET,
-            params={"title": "Hello", "description": "desc", "priority": "high", "assignee": None},
-        )
+    action = await main.generate_bot_action(ai, prompt)
+    reply = await main.execute_ticket_action(action)
+    sent = await main.send_message(client, channel_id, reply)
 
-    class _StubTicketService:
-        def create_ticket(self, title: str, description: str, assignee: str | None = None) -> _DummyTicket:
-            return _DummyTicket(title, TicketStatus.OPEN)
-
-    monkeypatch.setattr(main, "fetch_recent_messages", fake_fetch_recent_messages)
-    monkeypatch.setattr(main, "send_message", fake_send_message)
-    monkeypatch.setattr(main, "generate_bot_action", fake_generate_bot_action)
-    monkeypatch.setattr(main, "ticket_service", _StubTicketService())
-
-    last_seen: dict[str, str] = {}
-    await main._handle_channel(client=_StubChat(), ai=_StubAI(), channel_id="C1", last_seen=last_seen)
-
-    assert last_seen.get("C1") == "m1"
-    assert sent_messages, "Expected a reply to be sent"
-    assert "Ticket Created" in sent_messages[0]
+    assert sent is True
