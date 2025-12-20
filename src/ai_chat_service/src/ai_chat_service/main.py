@@ -2,14 +2,18 @@
 
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Response
 from pydantic import BaseModel
 
 import claude_chat_impl  # noqa: F401  # ensure AI implementation registers itself
 from ai_chat_api import AIInterface
 from ai_chat_api import get_ai_interface as _get_ai_interface
 
+from ai_chat_service.telemetry import PrometheusMiddleware, get_metrics
+
 app = FastAPI()
+
+app.add_middleware(PrometheusMiddleware)
 
 
 def get_ai_interface() -> AIInterface:
@@ -35,6 +39,11 @@ class ChatResponse(BaseModel):
 async def health_check() -> dict[str, str]:
     """Return an operational heartbeat."""
     return {"status": "ok"}
+
+@app.get("/metrics", tags=["Monitoring"])
+async def metrics() -> Response:
+    """Expose Prometheus metrics for monitoring."""
+    return Response(content=get_metrics(), media_type="text/plain; charset=utf-8")
 
 
 @app.post("/chat", tags=["Chat"])
