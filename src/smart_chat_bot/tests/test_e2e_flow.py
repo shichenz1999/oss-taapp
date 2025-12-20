@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import pytest
+from ai_chat_api import get_ai_interface
 
 
 def _split_channel_ids(value: str | None) -> list[str]:
@@ -24,9 +25,8 @@ _required_env = [
 _missing = [key for key in _required_env if not os.environ.get(key)]
 if not (os.environ.get("JIRA_API_BASE") or os.environ.get("JIRA_CLOUD_ID")):
     _missing.append("JIRA_API_BASE or JIRA_CLOUD_ID")
-if not _split_channel_ids(os.environ.get("CHAT_CHANNEL_IDS")):
-    if "CHAT_CHANNEL_IDS" not in _missing:
-        _missing.append("CHAT_CHANNEL_IDS")
+if not _split_channel_ids(os.environ.get("CHAT_CHANNEL_IDS")) and "CHAT_CHANNEL_IDS" not in _missing:
+    _missing.append("CHAT_CHANNEL_IDS")
 if _missing:
     pytest.skip(
         f"Missing required env vars for smart_chat_bot e2e: {sorted(set(_missing))}",
@@ -44,10 +44,10 @@ DEFAULT_E2E_PROMPT = "Hello! Please reply with a short greeting only."
 async def test_full_flow_real_services() -> None:
     """Chat -> AI -> TicketImpl -> reply using real services."""
     channel_id = main.CHANNEL_IDS[0]
-    prompt: str | None = DEFAULT_E2E_PROMPT
+    prompt = DEFAULT_E2E_PROMPT
 
     client = main.make_chat_client(main.CHAT_PROVIDER)
-    ai = main.get_ai_interface()
+    ai = get_ai_interface()
 
     messages = await main.fetch_recent_messages(
         client,
