@@ -506,12 +506,14 @@ async def update_ticket(
 
     Returns 404 if the ticket is not found.
     """
-    # Always call update_ticket to check if ticket exists and apply any status changes
-    # (other fields like title, description, priority are not yet supported by TicketImpl)
+    # Always call update_ticket to check if ticket exists and apply any field/status changes
     try:
         ticket = await service.update_ticket(
             ticket_id=ticket_id,
+            title=request.title,
+            description=request.description,
             status=request.status,
+            priority=request.priority,
         )
     except Exception as e:
         raise HTTPException(
@@ -535,8 +537,6 @@ async def update_ticket(
             logger.warning("Failed to reassign ticket to %s", request.assignee)
             # ticket already has the latest state from update_ticket
 
-    # Note: title, description, and priority updates are not yet supported
-    # by the TicketImpl backend and would require implementation
     try:
         return TicketResponse.model_validate(ticket)
     except Exception as e:

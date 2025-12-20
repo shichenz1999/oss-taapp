@@ -114,7 +114,7 @@ async def test_list_tickets_with_invalid_params(seed_token: None) -> None:
 @respx.mock
 async def test_list_tickets_service_error(seed_token: None) -> None:
     """Test that list_tickets raises ServiceError on HTTP errors."""
-    respx.post(f"{BASE}/search/jql").mock(return_value=httpx.Response(500, json={"error": "Server error"}))
+    respx.get(f"{BASE}/search/jql").mock(return_value=httpx.Response(500, json={"error": "Server error"}))
 
     svc = TicketImpl(user_id="u1", project_key="OSDP")
 

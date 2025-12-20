@@ -44,7 +44,7 @@ if not CHANNEL_IDS:
     raise RuntimeError(missing_channels_msg)
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "8"))
-MAX_MESSAGES_PER_POLL = int(os.environ.get("MAX_MESSAGES_PER_POLL", "5"))
+MAX_MESSAGES_PER_POLL = int(os.environ.get("MAX_MESSAGES_PER_POLL", "1"))
 BOT_USER_ID = os.environ.get("BOT_USER_ID")
 
 app = FastAPI(title="Smart Chat Bot API", version="1.0.0")
