@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.118.0",
     "pydantic>=2.11.9",
     "pydantic-settings>=2.7.0",
+    "prometheus-client>=0.20.0",
     "requests>=2.32.5",
     "uvicorn>=0.38.0",
 ]
@@ -21,8 +22,10 @@ dev = [
     "mypy>=1.17.0",
     "pymdown-extensions>=10.16.1",
     "pytest>=8.4.1",
+    "pytest-asyncio>=0.23.0",
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.15.0",
+    "respx>=0.21.0",
     "ruff>=0.12.7",
     "types-requests>=2.32.4.20250611",
 ]
@@ -39,6 +42,15 @@ members = [
   "src/ai_chat_service",
   "src/ai_chat_service_client",
   "src/ai_chat_adapter",
+  "src/smart_chat_bot",
+  "src/chat_client_api",
+  "src/discord_client_impl",
+  "src/discord_client_service",
+  "src/discord_client_service_client",
+  "src/discord_client_service_adapter",
+  "src/ticket_api",
+  "src/ticket_impl",
+  "src/ticket_service",
 ]
 
 [tool.ruff]
@@ -56,11 +68,12 @@ ignore = [
     "D213", # `multi-line-summary-first-line` (D212) and `multi-line-summary-second-line` (D213) are incompatible. Ignoring `multi-line-summary-second-line`.
     "S101", # Use of `assert` detected --> Asserts are good in our opinion. Tests use asserts profusely.
     "COM812", # Conflicts with the formatter; safe to ignore when using ruff format
+    "TRY301", # Accept direct raises inside try blocks for clearer flow in FastAPI handlers
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "**/test_*.py" = [
-    "TRY300", "BLE001", "ANN401", "SLF001", "E501", "S105", "ARG001", "ARG002", "S106", "INP001", "PLC0415",
+    "TRY300", "TRY301", "BLE001", "ANN401", "SLF001", "E501", "S105", "ARG001", "ARG002", "S106", "INP001", "PLC0415",
     # Common test relaxations
     "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
     "I001",
@@ -90,10 +103,20 @@ mypy_path = [
     "src/claude_chat_impl/src",
     "src/ai_chat_service/src",
     "src/ai_chat_adapter/src",
+    "src/chat_client_api/src",
+    "src/discord_client_impl/src",
+    "src/discord_client_service/src",
+    "src/discord_client_service_client/src",
+    "src/discord_client_service_adapter/src",  
+    "src/smart_chat_bot/src",
+    "src/ticket_api/src",
+    "src/ticket_impl/src",
 ]
 exclude = [
-    "src/mail_client_service_client/src/mail_client_service_client/.*",
-    "src/ai_chat_service_client/src/ai_chat_service_client/.*",
+  "src/mail_client_service_client/src/mail_client_service_client/.*",
+  "src/ai_chat_service_client/src/ai_chat_service_client/.*",
+  "src/discord_client_service_client/discord_client_service_client/.*",
+  "src/ticket_service_client/src/ticket_service_client/.*",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false
@@ -107,6 +130,7 @@ module = [
     "anthropic.*",
     "jose.*",
     "pydantic_settings.*",
+    "authlib.*",
 ]
 ignore_missing_imports = true
 
@@ -114,6 +138,18 @@ ignore_missing_imports = true
 module = [
     "ai_chat_service_client.*",
     "mail_client_service_client.*",
+    "discord_client_service.*",
+    "discord_client_service_client.*",
+    "discord_client_service_adapter.*",
+    "ticket_service.*",
+    "ticket_service_client.*",
+    "ticket_client_adapter.*",
+    "ticket_client_generated.*",
+    "ticket_service_client.api.*",
+    "ticket_service_client.models.*",
+    "ticket_service_client.types.*",
+    "dateutil.*",
+    "prometheus_client.*",
 ]
 ignore_missing_imports = true
 follow_imports = "skip"
@@ -143,9 +179,18 @@ pythonpath = [
     "src/claude_chat_impl/src",
     "src/ai_chat_service/src",
     "src/ai_chat_adapter/src",
+    "src/chat_client_api/src",
+    "src/discord_client_impl/src",
+    "src/discord_client_service/src",
+    "src/smart_chat_bot/src",
+    "src/ticket_api/src",
+    "src/ticket_service/src",
+    "src/ticket_client_adapter/src",
+    "src/ticket_client_generated",
 ]
 testpaths = ["tests", "src/*/tests"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
+asyncio_mode = "auto"
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
     "integration: marks tests as integration tests (medium speed, real dependencies)",
@@ -161,6 +206,8 @@ omit = [
     "*/__main__.py",
     "src/mail_client_service_client/src/mail_client_service_client/*",
     "src/ai_chat_service_client/src/ai_chat_service_client/*",
+    "src/discord_client_service_client/discord_client_service_client/*",
+    "src/ticket_client_generated/*",
 ]
 
 [tool.coverage.report]

@@ -1,0 +1,36 @@
+[project]
+name = "smart-chat-bot"
+version = "0.1.0"
+description = "Smart chat bot combines chat component and ai component."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "ai-chat-api",
+    "claude-chat-impl",
+    "chat-client-api",
+    "discord-client-impl",
+    "ticket-api",
+    "ticket-impl",
+    "prometheus-fastapi-instrumentator>=6.1.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+]
+
+[tool.uv.sources]
+ai-chat-api = { workspace = true }
+claude-chat-impl = { workspace = true }
+chat-client-api = { workspace = true }
+discord-client-impl = { workspace = true }
+ticket-api = { workspace = true }
+ticket-impl = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/smart_chat_bot"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
