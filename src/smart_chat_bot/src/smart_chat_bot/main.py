@@ -7,7 +7,6 @@ import contextlib
 import json
 import logging
 import os
-from importlib import import_module
 from typing import TYPE_CHECKING, TypeVar
 
 from discord_client_impl.discord_impl import DiscordClient
@@ -24,6 +23,7 @@ from ai_chat_api import AIInterface, get_ai_interface
 from chat_client_api import ChatInterface, Message
 from smart_chat_bot.prompts import TICKET_SYSTEM_PROMPT
 from smart_chat_bot.schemas import BotAction, TicketIntent
+from ticket_impl import TicketImpl
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -54,15 +54,9 @@ instrumentator = Instrumentator().instrument(app)
 instrumentator.expose(app, include_in_schema=False)
 
 def _make_ticket_service() -> TicketInterface:
-    """Build the ticket service factory; swappable via env."""
-    impl_path = os.environ.get("TICKET_PROVIDER_IMPL", "ticket_impl:TicketImpl")
     user = os.environ.get("TICKET_USER_ID", "bot-user")
     project = os.environ.get("TICKET_PROJECT_KEY", "TEST")
-
-    module_name, class_name = impl_path.split(":")
-    module = import_module(module_name)
-    impl_cls = getattr(module, class_name)
-    internal = impl_cls(user_id=user, project_key=project)
+    internal = TicketImpl(user_id=user, project_key=project)
     return StandardizedTicketAdapter(internal, reporter=user)
 
 

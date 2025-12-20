@@ -27,6 +27,7 @@ members = [
     "ta-assignment",
     "ticket-api",
     "ticket-impl",
+    "ticket-service",
 ]
 
 [[package]]
@@ -2112,6 +2113,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "requests" },
@@ -2148,6 +2150,7 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'dev'", specifier = ">=9.6.15" },
     { name = "mkdocstrings-python", marker = "extra == 'dev'", specifier = ">=1.16.12" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.17.0" },
+    { name = "prometheus-client", specifier = ">=0.20.0" },
     { name = "pydantic", specifier = ">=2.11.9" },
     { name = "pydantic-settings", specifier = ">=2.7.0" },
     { name = "pymdown-extensions", marker = "extra == 'dev'", specifier = ">=10.16.1" },
@@ -2229,6 +2232,23 @@ dev = [
     { name = "respx", specifier = ">=0.22.0" },
     { name = "ruff", specifier = ">=0.13.2" },
     { name = "types-requests", specifier = ">=2.32.4.20250913" },
+]
+
+[[package]]
+name = "ticket-service"
+version = "0.1.0"
+source = { editable = "src/ticket_service" }
+dependencies = [
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+    { name = "ticket-api" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "prometheus-client", specifier = ">=0.20.0" },
+    { name = "pydantic" },
+    { name = "ticket-api", editable = "src/ticket_api" },
 ]
 
 [[package]]
