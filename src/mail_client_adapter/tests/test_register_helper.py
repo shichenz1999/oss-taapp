@@ -4,10 +4,10 @@ import pytest
 from mail_client_adapter import ServiceMailClient, register
 
 
-def test_register_overrides_get_client(monkeypatch):
+def test_register_overrides_get_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure our register() swaps the global factory to ServiceMailClient."""
 
-    def _sentinel(*, interactive: bool = False):
+    def _sentinel(*, interactive: bool = False) -> None:
         raise NotImplementedError
 
     # Reset mail_client_api.get_client to a known sentinel so Gmail's auto-registration

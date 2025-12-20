@@ -4,19 +4,19 @@ import mail_client_api
 import pytest
 
 from mail_client_adapter import ServiceMailClient, ServiceMessage
-from mail_client_service_client.fast_api_client.models.message_detail import MessageDetail
-from mail_client_service_client.fast_api_client.models.message_summary import MessageSummary
-from mail_client_service_client.fast_api_client.models.operation_response import OperationResponse
+from mail_client_service_client.models.message_detail import MessageDetail
+from mail_client_service_client.models.message_summary import MessageSummary
+from mail_client_service_client.models.operation_response import OperationResponse
 
 
 @pytest.fixture(autouse=True)
-def reset_mail_client_api(monkeypatch):
+def reset_mail_client_api(monkeypatch: pytest.MonkeyPatch) -> None:
     # ensure get_client is not permanently modified by other tests
     if hasattr(mail_client_api, "get_client"):
         monkeypatch.setattr(mail_client_api, "get_client", mail_client_api.get_client, raising=False)
 
 
-def test_service_message_adapts_generated_payload():
+def test_service_message_adapts_generated_payload() -> None:
     # ARRANGE
     payload = MessageDetail.from_dict(
         {
@@ -41,12 +41,18 @@ def test_service_message_adapts_generated_payload():
     assert msg.body == "world"
 
 
-@patch("mail_client_service_client.fast_api_client.client.Client")
-@patch("mail_client_service_client.fast_api_client.api.default.get_message_messages_message_id_get.sync")
-@patch("mail_client_service_client.fast_api_client.api.default.list_messages_messages_get.sync")
-@patch("mail_client_service_client.fast_api_client.api.default.delete_message_messages_message_id_delete.sync")
-@patch("mail_client_service_client.fast_api_client.api.default.mark_as_read_messages_message_id_mark_as_read_post.sync")
-def test_service_mail_client_methods(mock_mark, mock_delete, mock_list, mock_get, mock_client_ctor):
+@patch("mail_client_service_client.client.Client")
+@patch("mail_client_service_client.api.default.get_message_messages_message_id_get.sync")
+@patch("mail_client_service_client.api.default.list_messages_messages_get.sync")
+@patch("mail_client_service_client.api.default.delete_message_messages_message_id_delete.sync")
+@patch("mail_client_service_client.api.default.mark_as_read_messages_message_id_mark_as_read_post.sync")
+def test_service_mail_client_methods(
+    mock_mark: MagicMock,
+    mock_delete: MagicMock,
+    mock_list: MagicMock,
+    mock_get: MagicMock,
+    mock_client_ctor: MagicMock,
+) -> None:
     # ARRANGE generated client ctor
     mock_client_ctor.return_value = MagicMock()
 

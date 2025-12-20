@@ -2,19 +2,20 @@
 
 from collections.abc import Iterator
 
-import mail_client_api
-from mail_client_adapter.message_adapter import ServiceMessage
-from mail_client_service_client.fast_api_client import client as generated_client
-from mail_client_service_client.fast_api_client.api.default import (
+from mail_client_service_client.api.default import (
     delete_message_messages_message_id_delete,
     get_message_messages_message_id_get,
     list_messages_messages_get,
     mark_as_read_messages_message_id_mark_as_read_post,
 )
-from mail_client_service_client.fast_api_client.models.http_validation_error import HTTPValidationError
-from mail_client_service_client.fast_api_client.models.message_detail import MessageDetail
-from mail_client_service_client.fast_api_client.models.message_summary import MessageSummary
-from mail_client_service_client.fast_api_client.models.operation_response import OperationResponse
+from mail_client_service_client.models.http_validation_error import HTTPValidationError
+from mail_client_service_client.models.message_detail import MessageDetail
+from mail_client_service_client.models.message_summary import MessageSummary
+from mail_client_service_client.models.operation_response import OperationResponse
+
+import mail_client_api
+from mail_client_adapter.message_adapter import ServiceMessage
+from mail_client_service_client import client as generated_client
 
 
 class ServiceMailClient(mail_client_api.Client):

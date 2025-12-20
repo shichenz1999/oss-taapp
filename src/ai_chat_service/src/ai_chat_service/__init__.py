@@ -2,6 +2,6 @@
 
 """FastAPI service deployment package."""
 
-from .main import app, auth_manager, get_current_user_id
+from .main import app
 
-__all__ = ["app", "auth_manager", "get_current_user_id"]
+__all__ = ["app"]

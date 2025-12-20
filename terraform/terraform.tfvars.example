@@ -1,0 +1,29 @@
+# Render API key should be supplied via TF_VAR_render_api_key or a non-committed terraform.tfvars
+render_api_key = "rnd_xxx"
+render_owner_id = "usr-xxx"
+
+repo_url    = "https://github.com/shichenz1999/oss-taapp"
+repo_branch = "hw3"
+
+# ai component: claude
+claude_api_key = "sk-ant-xxx"
+
+# chat component: discord
+chat_provider    = "discord"
+chat_channel_ids = ""
+discord_bot_token = ""
+
+# ticket component: jira
+ticket_user_id     = "xxx@email.com"
+ticket_project_key = ""
+
+jira_cloud_id = ""
+
+jira_api_base  = "https://xxx.atlassian.net"
+
+jira_api_token = "ATATTxxx"
+jira_api_email = "xxx@email.com"
+
+# smart chat bot
+poll_interval_seconds = 8
+max_messages_per_poll = 1
