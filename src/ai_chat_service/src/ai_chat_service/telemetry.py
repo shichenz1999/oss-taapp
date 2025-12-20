@@ -4,12 +4,11 @@ Based on ticket_service/telemetry.py pattern.
 """
 
 import time
-from collections.abc import Callable
-from typing import Any, cast
+from typing import cast
 
 from fastapi import Request, Response
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 # ============================================================================
 # CONSTANTS
@@ -72,7 +71,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
     """Middleware to collect Prometheus metrics for all HTTP requests."""
 
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Any]
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         """Process request and collect metrics."""
         # Skip metrics endpoint itself
@@ -90,6 +89,22 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
         try:
             response: Response = await call_next(request)
+        except Exception:
+            # Track exceptions as failures
+            duration = time.time() - start_time
+            request_duration_seconds.labels(
+                method=method, endpoint=endpoint, status_code=HTTP_SERVER_ERROR
+            ).observe(duration)
+
+            request_count.labels(
+                method=method, endpoint=endpoint, status_code=HTTP_SERVER_ERROR
+            ).inc()
+            request_failure_total.labels(
+                method=method, endpoint=endpoint, status_code=HTTP_SERVER_ERROR
+            ).inc()
+
+            raise
+        else:
             status_code = response.status_code
 
             # Record metrics
@@ -109,21 +124,6 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
                 ).inc()
 
             return response
-        except Exception:
-            # Track exceptions as failures
-            duration = time.time() - start_time
-            request_duration_seconds.labels(
-                method=method, endpoint=endpoint, status_code=HTTP_SERVER_ERROR
-            ).observe(duration)
-
-            request_count.labels(
-                method=method, endpoint=endpoint, status_code=HTTP_SERVER_ERROR
-            ).inc()
-            request_failure_total.labels(
-                method=method, endpoint=endpoint, status_code=HTTP_SERVER_ERROR
-            ).inc()
-
-            raise
 
         finally:
             # Decrement active requests
@@ -136,4 +136,4 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
 def get_metrics() -> bytes:
     """Get Prometheus metrics in text format."""
-    return cast(bytes, generate_latest())
+    return cast("bytes", generate_latest())

@@ -11,7 +11,7 @@ from collections.abc import Callable
 from typing import Any, cast
 
 from fastapi import Request, Response
-from prometheus_client import Counter, Gauge, Histogram, generate_latest
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # ============================================================================
@@ -27,12 +27,16 @@ HTTP_SERVER_ERROR = 500
 # METRICS DEFINITIONS
 # ============================================================================
 
+# Registry scoped to this service to avoid cross-service metric collisions in tests.
+REGISTRY = CollectorRegistry()
+
 # Request duration histogram (latency tracking)
 request_duration_seconds = Histogram(
     "http_request_duration_seconds",
     "HTTP request latency in seconds",
     ["method", "endpoint", "status_code"],
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
+    registry=REGISTRY,
 )
 
 # Request counter (success/failure tracking)
@@ -40,6 +44,7 @@ request_count = Counter(
     "http_requests_total",
     "Total HTTP requests",
     ["method", "endpoint", "status_code"],
+    registry=REGISTRY,
 )
 
 # Success rate counter
@@ -47,6 +52,7 @@ request_success_total = Counter(
     "http_requests_success_total",
     "Total successful HTTP requests (2xx status codes)",
     ["method", "endpoint"],
+    registry=REGISTRY,
 )
 
 # Failure rate counter
@@ -54,6 +60,7 @@ request_failure_total = Counter(
     "http_requests_failure_total",
     "Total failed HTTP requests (4xx, 5xx status codes)",
     ["method", "endpoint", "status_code"],
+    registry=REGISTRY,
 )
 
 # Active requests gauge
@@ -61,6 +68,7 @@ active_requests = Gauge(
     "http_requests_active",
     "Number of active HTTP requests",
     ["method", "endpoint"],
+    registry=REGISTRY,
 )
 
 # Ticket operation metrics
@@ -68,6 +76,7 @@ ticket_operations_total = Counter(
     "ticket_operations_total",
     "Total ticket operations",
     ["operation", "status"],
+    registry=REGISTRY,
 )
 
 ticket_operation_duration_seconds = Histogram(
@@ -75,6 +84,7 @@ ticket_operation_duration_seconds = Histogram(
     "Ticket operation duration in seconds",
     ["operation"],
     buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+    registry=REGISTRY,
 )
 
 
@@ -158,4 +168,4 @@ def track_ticket_operation(operation: str, status: str = "success") -> None:
 
 def get_metrics() -> bytes:
     """Get Prometheus metrics in text format."""
-    return cast("bytes", generate_latest())
+    return cast("bytes", generate_latest(REGISTRY))

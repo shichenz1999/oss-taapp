@@ -2,13 +2,12 @@
 
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, HTTPException, status, Response
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 from pydantic import BaseModel
 
 import claude_chat_impl  # noqa: F401  # ensure AI implementation registers itself
 from ai_chat_api import AIInterface
 from ai_chat_api import get_ai_interface as _get_ai_interface
-
 from ai_chat_service.telemetry import PrometheusMiddleware, get_metrics
 
 app = FastAPI()
